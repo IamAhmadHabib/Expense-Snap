@@ -1,0 +1,41 @@
+{
+	"nodes":[
+		{"id":"home","type":"file","file":"00_Start_Here/Kharcha Home.md","x":0,"y":0,"width":300,"height":160},
+		{"id":"product","type":"file","file":"01_Product/Product Vision.md","x":-520,"y":-260,"width":260,"height":100},
+		{"id":"architecture","type":"file","file":"02_Architecture/Architecture Overview.md","x":0,"y":-300,"width":280,"height":240},
+		{"id":"design","type":"file","file":"03_Design/Design System.md","x":520,"y":-260,"width":260,"height":100},
+		{"id":"screens","type":"file","file":"02_Architecture/Feature Screens.md","x":-520,"y":60,"width":260,"height":100},
+		{"id":"features","type":"file","file":"05_Features/Transactions.md","x":0,"y":260,"width":260,"height":100},
+		{"id":"roadmap","type":"file","file":"07_Roadmap/Phase 2 Real Expense Flow.md","x":520,"y":60,"width":290,"height":100},
+		{"id":"tasks","type":"file","file":"09_Tasks/Open Tasks.md","x":520,"y":260,"width":260,"height":100},
+		{"id":"decisions","type":"file","file":"08_Decisions/Decision Log.md","x":-520,"y":260,"width":260,"height":100},
+		{"id":"data","type":"file","file":"02_Architecture/Data Flow.md","x":0,"y":460,"width":260,"height":260},
+		{"id":"dashboard","type":"file","file":"04_Screens/Dashboard.md","x":-850,"y":-40,"width":240,"height":90},
+		{"id":"add","type":"file","file":"04_Screens/Add Transaction.md","x":-850,"y":120,"width":240,"height":90},
+		{"id":"history","type":"file","file":"04_Screens/History.md","x":-850,"y":280,"width":240,"height":90},
+		{"id":"analytics","type":"file","file":"04_Screens/Analytics.md","x":-850,"y":440,"width":240,"height":90},
+		{"id":"colors","type":"file","file":"03_Design/Color Tokens.md","x":850,"y":-360,"width":240,"height":90},
+		{"id":"debt","type":"file","file":"03_Design/Design Debt.md","x":850,"y":-200,"width":240,"height":90}
+	],
+	"edges":[
+		{"id":"e1","fromNode":"home","fromSide":"top","toNode":"architecture","toSide":"bottom"},
+		{"id":"e2","fromNode":"home","fromSide":"left","toNode":"product","toSide":"right"},
+		{"id":"e3","fromNode":"home","fromSide":"right","toNode":"design","toSide":"left"},
+		{"id":"e4","fromNode":"home","fromSide":"left","toNode":"screens","toSide":"right"},
+		{"id":"e5","fromNode":"home","fromSide":"bottom","toNode":"features","toSide":"top"},
+		{"id":"e6","fromNode":"features","fromSide":"bottom","toNode":"data","toSide":"top"},
+		{"id":"e7","fromNode":"features","fromSide":"right","toNode":"roadmap","toSide":"left"},
+		{"id":"e8","fromNode":"roadmap","fromSide":"bottom","toNode":"tasks","toSide":"top"},
+		{"id":"e9","fromNode":"features","fromSide":"left","toNode":"decisions","toSide":"right"},
+		{"id":"e10","fromNode":"screens","fromSide":"left","toNode":"dashboard","toSide":"right"},
+		{"id":"e11","fromNode":"screens","fromSide":"left","toNode":"add","toSide":"right"},
+		{"id":"e12","fromNode":"screens","fromSide":"left","toNode":"history","toSide":"right"},
+		{"id":"e13","fromNode":"screens","fromSide":"left","toNode":"analytics","toSide":"right"},
+		{"id":"e14","fromNode":"design","fromSide":"right","toNode":"colors","toSide":"left"},
+		{"id":"e15","fromNode":"design","fromSide":"right","toNode":"debt","toSide":"left"},
+		{"id":"e16","fromNode":"data","fromSide":"left","toNode":"dashboard","toSide":"bottom"},
+		{"id":"e17","fromNode":"data","fromSide":"left","toNode":"history","toSide":"bottom"},
+		{"id":"e18","fromNode":"data","fromSide":"left","toNode":"analytics","toSide":"bottom"},
+		{"id":"e19","fromNode":"add","fromSide":"right","toNode":"features","toSide":"left"}
+	]
+}
