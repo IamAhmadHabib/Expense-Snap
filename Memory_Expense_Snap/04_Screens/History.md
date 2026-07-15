@@ -8,7 +8,14 @@ tags: [screen, history]
 
 Ledger-style transaction history.
 
-Current gap: uses mock transactions and should read/write through [[Repository Plan]].
+Confirmed live-code gaps:
+
+- The screen owns and regenerates its own mock transaction list.
+- Edit opens a pre-filled [[Add Transaction]] sheet but ignores the result, so edits are not applied.
+- Delete and undo affect only the screen-local list.
+- The local list resets when the Dashboard shell rebuilds this tab.
+
+History should read and mutate the shared source in [[Repository Plan]].
 
 Related:
 
