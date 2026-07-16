@@ -4,6 +4,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
 import '../dashboard/dashboard_screen.dart';
+import '../../repositories/repository_scope.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 class PersonalizationFlow extends StatefulWidget {
@@ -295,7 +296,7 @@ class _PersonalizationFlowState extends State<PersonalizationFlow> {
             child: ListView.separated(
               itemCount: filtered.length,
               physics: const BouncingScrollPhysics(),
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              separatorBuilder: (context, index) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
                 final curr = filtered[index];
                 final isSelected = _selectedCurrency['code'] == curr['code'];
@@ -516,10 +517,11 @@ class _PersonalizationFlowState extends State<PersonalizationFlow> {
                 onTap: () {
                   HapticFeedback.selectionClick();
                   setState(() {
-                    if (isSelected)
+                    if (isSelected) {
                       _selectedCategories.remove(cat['label']);
-                    else
+                    } else {
                       _selectedCategories.add(cat['label']);
+                    }
                   });
                 },
                 child: AnimatedContainer(
@@ -655,19 +657,33 @@ class _PersonalizationFlowState extends State<PersonalizationFlow> {
     );
   }
 
-  void _handleFinishSetup() {
+  Future<void> _handleFinishSetup() async {
+    final budget =
+        double.tryParse(_budgetController.text.replaceAll(',', '')) ?? 0.0;
+    final userName = _nameController.text.trim().isNotEmpty
+        ? _nameController.text.trim()
+        : 'Ahmad';
+    final currencySymbol = _selectedCurrency['symbol'] ?? 'Rs.';
+    final settingsRepository = RepositoryScope.maybeOf(context)?.settings;
+    if (settingsRepository != null) {
+      await settingsRepository.update(
+        settingsRepository.settings.copyWith(
+          userName: userName,
+          monthlyBudget: budget,
+          currencySymbol: currencySymbol,
+          selectedCategories: List<String>.from(_selectedCategories),
+        ),
+      );
+    }
+    if (!mounted) return;
     // 🎬 The Awakening Animation - Transition to Dashboard
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
         pageBuilder: (context, animation, secondaryAnimation) =>
             DashboardScreen(
-              initialBudget:
-                  double.tryParse(_budgetController.text.replaceAll(',', '')) ??
-                  0.0,
-              userName: _nameController.text.isNotEmpty
-                  ? _nameController.text
-                  : 'Ahmad',
-              currencySymbol: _selectedCurrency['symbol'] ?? r'$',
+              initialBudget: budget,
+              userName: userName,
+              currencySymbol: currencySymbol,
             ),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           // Dissolve upward transition

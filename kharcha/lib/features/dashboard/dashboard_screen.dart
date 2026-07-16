@@ -3,6 +3,10 @@ import '../analytics/analytics_screen.dart';
 import '../history/history_screen.dart';
 import '../transactions/add_transaction_sheet.dart';
 import '../profile/profile_screen.dart';
+import '../notifications/notifications_screen.dart';
+import '../../repositories/app_settings_repository.dart';
+import '../../repositories/repository_scope.dart';
+import '../../repositories/transaction_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:kharcha/theme/app_colors.dart';
@@ -38,14 +42,19 @@ class _DashboardScreenState extends State<DashboardScreen>
   late Animation<double> _heroScale;
   late Animation<Offset> _bentoSlide;
   late Animation<Offset> _dockSlide;
+  late PageController _tabPageController;
 
   int _activeTab = 0; // 0: Home, 1: Analytics, 2: History, 3: Profile
   bool _isSheetOpen = false;
 
   // Controller for screen transitions
   late AnimationController _screenTransitionController;
-  bool _isSwitching = false;
   bool _isAnalyticsOverlayOpen = false;
+  late TransactionRepository _transactions;
+  late AppSettingsRepository _settings;
+  bool _repositoriesInitialized = false;
+  late List<Widget> _tabPages;
+  bool _tabPagesInitialized = false;
 
   @override
   void initState() {
@@ -109,6 +118,7 @@ class _DashboardScreenState extends State<DashboardScreen>
         );
 
     _mainController.forward();
+    _tabPageController = PageController(initialPage: _activeTab);
 
     _screenTransitionController = AnimationController(
       vsync: this,
@@ -126,10 +136,51 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   @override
   void dispose() {
+    if (_repositoriesInitialized) {
+      _transactions.removeListener(_onRepositoryChanged);
+      _settings.removeListener(_onRepositoryChanged);
+    }
     _mainController.dispose();
+    _tabPageController.dispose();
     _screenTransitionController.dispose();
     super.dispose();
   }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_repositoriesInitialized) return;
+    final scope = RepositoryScope.maybeOf(context);
+    _transactions = scope?.transactions ?? TransactionRepository.inMemory();
+    _settings = scope?.settings ?? AppSettingsRepository.inMemory();
+    _transactions.addListener(_onRepositoryChanged);
+    _settings.addListener(_onRepositoryChanged);
+    _tabPages = _buildTabPages();
+    _tabPagesInitialized = true;
+    _repositoriesInitialized = true;
+  }
+
+  void _onRepositoryChanged() {
+    if (mounted) {
+      setState(() {
+        _tabPages = _buildTabPages();
+      });
+    }
+  }
+
+  double get _budget => _settings.settings.monthlyBudget > 0
+      ? _settings.settings.monthlyBudget
+      : widget.initialBudget;
+  String get _currency => _settings.settings.currencySymbol.isNotEmpty
+      ? _settings.settings.currencySymbol
+      : widget.currencySymbol;
+  String get _userName => _settings.settings.userName.isNotEmpty
+      ? _settings.settings.userName
+      : widget.userName;
+  double get _spent => _transactions.currentMonthExpenses;
+  double get _remainingBudget => (_budget - _spent).clamp(0, _budget);
+  double get _budgetLeftFraction =>
+      _budget <= 0 ? 0 : _remainingBudget / _budget;
 
   SystemUiOverlayStyle _getStatusBarStyle() {
     switch (_activeTab) {
@@ -145,53 +196,128 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   @override
   Widget build(BuildContext context) {
-    return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: _getStatusBarStyle(),
-      child: Scaffold(
-        backgroundColor: AppColors.background,
-        body: Stack(
-          fit: StackFit.expand,
-          children: [
-            // ─── Content Layers ──────────
-            _buildScreenContent(),
+    return PopScope(
+      canPop: _activeTab == 0,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop && _activeTab != 0) {
+          _selectTab(0);
+        }
+      },
+      child: AnnotatedRegion<SystemUiOverlayStyle>(
+        value: _getStatusBarStyle(),
+        child: Scaffold(
+          backgroundColor: AppColors.background,
+          body: Stack(
+            fit: StackFit.expand,
+            children: [
+              // ─── Content Layers ──────────
+              _buildScreenContent(),
 
-            // Overlay when sheet is open
-            if (_isSheetOpen)
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                color: AppColors.primary.withValues(alpha: 0.4),
-              ),
-
-            // ─── Floating Glass Dock ───────────────────────
-            if (!_isAnalyticsOverlayOpen) _buildFloatingDock(),
-          ],
+              // Overlay when sheet is open
+              // ─── Floating Glass Dock ───────────────────────
+              if (!_isAnalyticsOverlayOpen) _buildFloatingDock(),
+            ],
+          ),
         ),
       ),
     );
   }
 
   Widget _buildScreenContent() {
-    switch (_activeTab) {
-      case 0:
-        return _buildDashboardBody();
-      case 1:
-        return FadeTransition(
-          opacity: const AlwaysStoppedAnimation(1.0),
+    if (!_tabPagesInitialized) {
+      return const SizedBox.shrink();
+    }
+    return PageView(
+      controller: _tabPageController,
+      physics: const NeverScrollableScrollPhysics(),
+      allowImplicitScrolling: true,
+      onPageChanged: (index) {
+        if (_activeTab != index) {
+          setState(() => _activeTab = index);
+        }
+      },
+      children: _tabPages,
+    );
+  }
+
+  List<Widget> _buildTabPages() {
+    return [
+      _KeepAliveTabPage(child: RepaintBoundary(child: _buildDashboardBody())),
+      _KeepAliveTabPage(
+        child: RepaintBoundary(
           child: AnalyticsScreen(
-            onBack: () => setState(() => _activeTab = 0),
+            repository: _transactions,
+            onBack: () => _selectTab(0),
             onToggleOverlay: (isOpen) =>
                 setState(() => _isAnalyticsOverlayOpen = isOpen),
           ),
-        );
-      case 2:
-        return FadeTransition(
-          opacity: const AlwaysStoppedAnimation(1.0),
-          child: const HistoryScreen(),
-        );
-      case 3:
-        return const ProfileScreen();
-      default:
-        return _buildDashboardBody();
+        ),
+      ),
+      _KeepAliveTabPage(
+        child: RepaintBoundary(child: HistoryScreen(repository: _transactions)),
+      ),
+      _KeepAliveTabPage(
+        child: RepaintBoundary(
+          child: ProfileScreen(
+            settingsRepository: _settings,
+            transactionRepository: _transactions,
+          ),
+        ),
+      ),
+    ];
+  }
+
+  void _selectTab(int index) {
+    if (_activeTab == index) return;
+    HapticFeedback.selectionClick();
+    setState(() => _activeTab = index);
+    if (_tabPageController.hasClients) {
+      _tabPageController.jumpToPage(index);
+    }
+  }
+
+  void _openNotifications() {
+    HapticFeedback.lightImpact();
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const NotificationsScreen()));
+  }
+
+  Future<void> _openAddTransaction(AddTransactionTab initialTab) async {
+    if (_isSheetOpen) return;
+
+    HapticFeedback.mediumImpact();
+    _isSheetOpen = true;
+
+    final result = await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      useSafeArea: true,
+      barrierColor: AppColors.primary.withValues(alpha: 0.12),
+      builder: (context) => RepaintBoundary(
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                child: const SizedBox.expand(),
+              ),
+            ),
+            AddTransactionSheet(
+              initialTab: initialTab,
+              repository: _transactions,
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (!mounted) return;
+    _isSheetOpen = false;
+
+    if (result == true) {
+      // Phase 2 will refresh shared transaction data here.
     }
   }
 
@@ -210,13 +336,13 @@ class _DashboardScreenState extends State<DashboardScreen>
           children: [
             _buildClassicHeader(),
             const SizedBox(height: AppSpacing.lg),
-            _buildBudgetHeroCard(),
+            RepaintBoundary(child: _buildBudgetHeroCard()),
             const SizedBox(height: AppSpacing.xl),
-            _buildQuickActions(),
+            RepaintBoundary(child: _buildQuickActions()),
             const SizedBox(height: AppSpacing.xl),
-            _buildWeeklyVelocity(),
+            RepaintBoundary(child: _buildWeeklyVelocity()),
             const SizedBox(height: AppSpacing.lg),
-            _buildRecentCategories(),
+            RepaintBoundary(child: _buildRecentCategories()),
           ],
         ),
       ),
@@ -234,98 +360,106 @@ class _DashboardScreenState extends State<DashboardScreen>
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             // Left: Profile & Message
-            Row(
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.05),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Center(
-                    child: Icon(
-                      PhosphorIcons.user(PhosphorIconsStyle.light),
-                      color: AppColors.primary,
-                      size: 24,
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => _selectTab(3),
+              child: Row(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.05),
+                      shape: BoxShape.circle,
                     ),
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.md),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Good morning,',
-                      style: AppTypography.label.copyWith(
-                        color: AppColors.textPrimary.withValues(alpha: 0.45),
-                        fontWeight: FontWeight.w500,
+                    child: Center(
+                      child: Icon(
+                        PhosphorIcons.user(PhosphorIconsStyle.light),
+                        color: AppColors.primary,
+                        size: 24,
                       ),
                     ),
-                    Row(
-                      children: [
-                        Text(
-                          widget.userName,
-                          style: AppTypography.h3.copyWith(
-                            fontWeight: FontWeight.w800,
-                          ),
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Good morning,',
+                        style: AppTypography.label.copyWith(
+                          color: AppColors.textPrimary.withValues(alpha: 0.45),
+                          fontWeight: FontWeight.w500,
                         ),
-                        const SizedBox(width: 4),
-                        const Text('👋', style: TextStyle(fontSize: 16)),
-                      ],
-                    ),
-                  ],
-                ),
-              ],
-            ),
-
-            // Right: Notifications
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.04),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
+                      ),
+                      Row(
+                        children: [
+                          Text(
+                            _userName,
+                            style: AppTypography.h3.copyWith(
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          const Text('👋', style: TextStyle(fontSize: 16)),
+                        ],
+                      ),
+                    ],
                   ),
                 ],
               ),
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  Icon(
-                    PhosphorIcons.bell(PhosphorIconsStyle.light),
-                    color: AppColors.primary,
-                    size: 24,
-                  ),
-                  Positioned(
-                    top: 13,
-                    right: 13,
-                    child: Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: AppColors.accent, // Brand Amber
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: AppColors.surface,
-                          width: 1.5,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.accent.withValues(alpha: 0.5),
-                            blurRadius: 4,
+            ),
+
+            // Right: Notifications
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: _openNotifications,
+              child: Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primary.withValues(alpha: 0.04),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Icon(
+                      PhosphorIcons.bell(PhosphorIconsStyle.light),
+                      color: AppColors.primary,
+                      size: 24,
+                    ),
+                    Positioned(
+                      top: 13,
+                      right: 13,
+                      child: Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: AppColors.accent,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: AppColors.surface,
+                            width: 1.5,
                           ),
-                        ],
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.accent.withValues(alpha: 0.5),
+                              blurRadius: 4,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ],
@@ -347,15 +481,12 @@ class _DashboardScreenState extends State<DashboardScreen>
             gradient: const LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [
-                Color(0xFF2C2C2E), // Subtle dark metallic grey
-                Color(0xFF18181A), // Deep Charcoal
-              ],
+              colors: [AppColors.surfaceDark, AppColors.backgroundDark],
             ),
             borderRadius: BorderRadius.circular(36), // Deep premium curve
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.15),
+                color: AppColors.primary.withValues(alpha: 0.15),
                 blurRadius: 40,
                 offset: const Offset(0, 20),
               ),
@@ -372,7 +503,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                   child: Icon(
                     PhosphorIcons.wallet(PhosphorIconsStyle.fill),
                     size: 200,
-                    color: Colors.white.withValues(alpha: 0.05),
+                    color: AppColors.surface.withValues(alpha: 0.05),
                   ),
                 ),
                 Padding(
@@ -383,13 +514,18 @@ class _DashboardScreenState extends State<DashboardScreen>
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            'October Budget',
-                            style: AppTypography.label.copyWith(
-                              color: AppColors.surface.withValues(alpha: 0.6),
-                              fontWeight: FontWeight.normal,
+                          Expanded(
+                            child: Text(
+                              'October Budget',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTypography.label.copyWith(
+                                color: AppColors.surface.withValues(alpha: 0.6),
+                                fontWeight: FontWeight.normal,
+                              ),
                             ),
                           ),
+                          const SizedBox(width: AppSpacing.sm),
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 10,
@@ -400,7 +536,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
-                              '49% left',
+                              '${(_budgetLeftFraction * 100).round()}% left',
                               style: AppTypography.caption.copyWith(
                                 color: AppColors.accent,
                                 fontWeight: FontWeight.w700,
@@ -414,7 +550,14 @@ class _DashboardScreenState extends State<DashboardScreen>
                       AnimatedBuilder(
                         animation: _budgetCountAnimation,
                         builder: (context, child) {
-                          final double currentVal = _budgetCountAnimation.value;
+                          final double animationProgress =
+                              widget.initialBudget > 0
+                              ? (_budgetCountAnimation.value /
+                                        widget.initialBudget)
+                                    .clamp(0, 1)
+                              : _mainController.value;
+                          final double currentVal =
+                              _remainingBudget * animationProgress;
                           String displayValue;
 
                           if (currentVal >= 1000000) {
@@ -438,7 +581,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                                   right: 6.0,
                                 ),
                                 child: Text(
-                                  widget.currencySymbol,
+                                  _currency,
                                   style: AppTypography.h3.copyWith(
                                     color: AppColors.surface.withValues(
                                       alpha: 0.5,
@@ -466,7 +609,7 @@ class _DashboardScreenState extends State<DashboardScreen>
 
                       const SizedBox(height: AppSpacing.sm),
                       Text(
-                        'of ${widget.currencySymbol} ${NumberFormat.compact().format(widget.initialBudget)} planned',
+                        'of $_currency ${NumberFormat.compact().format(_budget)} planned',
                         style: AppTypography.bodySmall.copyWith(
                           color: AppColors.surface.withValues(alpha: 0.4),
                         ),
@@ -498,7 +641,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                                 ),
                               ).value;
                               return FractionallySizedBox(
-                                widthFactor: progress * 0.49,
+                                widthFactor: progress * _budgetLeftFraction,
                                 child: Container(
                                   height: 6,
                                   decoration: BoxDecoration(
@@ -547,6 +690,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                 PhosphorIcons.microphone(PhosphorIconsStyle.light),
                 AppColors.accent,
                 AppColors.surface,
+                () => _openAddTransaction(AddTransactionTab.voice),
               ),
             ),
             const SizedBox(width: AppSpacing.md),
@@ -555,6 +699,7 @@ class _DashboardScreenState extends State<DashboardScreen>
               child: _buildSecondaryActionCard(
                 'Scan',
                 PhosphorIcons.scan(PhosphorIconsStyle.light),
+                () => _openAddTransaction(AddTransactionTab.scan),
               ),
             ),
             const SizedBox(width: AppSpacing.md),
@@ -563,6 +708,7 @@ class _DashboardScreenState extends State<DashboardScreen>
               child: _buildSecondaryActionCard(
                 'Manual',
                 PhosphorIcons.notePencil(PhosphorIconsStyle.light),
+                () => _openAddTransaction(AddTransactionTab.manual),
               ),
             ),
           ],
@@ -576,76 +722,113 @@ class _DashboardScreenState extends State<DashboardScreen>
     IconData icon,
     Color bgColor,
     Color fgColor,
+    VoidCallback onTap,
   ) {
-    return Container(
-      height: 85,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [bgColor, bgColor.withValues(alpha: 0.9)],
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        height: 85,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [bgColor, bgColor.withValues(alpha: 0.9)],
+          ),
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: bgColor.withValues(alpha: 0.2),
+              blurRadius: 15,
+              offset: const Offset(0, 8),
+            ),
+          ],
         ),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: bgColor.withValues(alpha: 0.2),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: AppColors.primary, size: 24),
             ),
-            child: Icon(icon, color: AppColors.primary, size: 24),
-          ),
-          const SizedBox(width: 12),
-          Text(
-            title,
-            style: AppTypography.h3.copyWith(
-              color: AppColors.primary,
-              fontWeight: FontWeight.w800,
-              fontSize: 18,
+            const SizedBox(width: 12),
+            Text(
+              title,
+              style: AppTypography.h3.copyWith(
+                color: AppColors.primary,
+                fontWeight: FontWeight.w800,
+                fontSize: 18,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildSecondaryActionCard(String title, IconData icon) {
-    return Container(
-      height: 85, // Uniform height
-      decoration: BoxDecoration(
-        color: const Color(0xFFFAF6F0),
-        borderRadius: BorderRadius.circular(24), // Unified Squircle
-        border: Border.all(color: const Color(0xFFE8DDD0), width: 1.2),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, color: AppColors.primary, size: 28),
-          const SizedBox(height: 6),
-          Text(
-            title,
-            style: AppTypography.caption.copyWith(
-              fontWeight: FontWeight.w800,
-              color: AppColors.primary,
-              letterSpacing: 0.4,
+  Widget _buildSecondaryActionCard(
+    String title,
+    IconData icon,
+    VoidCallback onTap,
+  ) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        height: 85,
+        decoration: BoxDecoration(
+          color: AppColors.warmSurfaceMuted,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: AppColors.warmBorder, width: 1.2),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: AppColors.primary, size: 28),
+            const SizedBox(height: 6),
+            Text(
+              title,
+              style: AppTypography.caption.copyWith(
+                fontWeight: FontWeight.w800,
+                color: AppColors.primary,
+                letterSpacing: 0.4,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildWeeklyVelocity() {
+    final now = DateTime.now();
+    final weekStart = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).subtract(Duration(days: now.weekday - 1));
+    final weeklyAmounts = List<double>.generate(7, (index) {
+      final day = weekStart.add(Duration(days: index));
+      return _transactions.transactions
+          .where(
+            (transaction) =>
+                !transaction.isIncome &&
+                transaction.date.year == day.year &&
+                transaction.date.month == day.month &&
+                transaction.date.day == day.day,
+          )
+          .fold(0, (total, transaction) => total + transaction.amount);
+    });
+    final maxAmount = weeklyAmounts.fold<double>(
+      0,
+      (max, value) => value > max ? value : max,
+    );
+    const labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
     return SlideTransition(
       position: _bentoSlide,
       child: FadeTransition(
@@ -704,9 +887,24 @@ class _DashboardScreenState extends State<DashboardScreen>
                       ),
                     ],
                   ),
-                  Icon(
-                    PhosphorIcons.dotsThree(PhosphorIconsStyle.bold),
-                    color: AppColors.primary.withValues(alpha: 0.3),
+                  Semantics(
+                    button: true,
+                    label: 'Open weekly analytics',
+                    child: GestureDetector(
+                      key: const ValueKey('weekly_velocity_menu'),
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => _selectTab(1),
+                      child: SizedBox(
+                        width: 48,
+                        height: 48,
+                        child: Center(
+                          child: Icon(
+                            PhosphorIcons.dotsThree(PhosphorIconsStyle.bold),
+                            color: AppColors.primary.withValues(alpha: 0.3),
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -714,15 +912,18 @@ class _DashboardScreenState extends State<DashboardScreen>
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  _buildBar('Mon', 40, DateTime.now().weekday == 1, "400"),
-                  _buildBar('Tue', 60, DateTime.now().weekday == 2, "600"),
-                  _buildBar('Wed', 30, DateTime.now().weekday == 3, "300"),
-                  _buildBar('Thu', 80, DateTime.now().weekday == 4, "800"),
-                  _buildBar('Fri', 20, DateTime.now().weekday == 5, "200"),
-                  _buildBar('Sat', 50, DateTime.now().weekday == 6, "500"),
-                  _buildBar('Sun', 70, DateTime.now().weekday == 7, "700"),
-                ],
+                children: List.generate(7, (index) {
+                  final amount = weeklyAmounts[index];
+                  final height = maxAmount == 0
+                      ? 8.0
+                      : 8 + (amount / maxAmount * 72);
+                  return _buildBar(
+                    labels[index],
+                    height,
+                    now.weekday == index + 1,
+                    NumberFormat.compact().format(amount),
+                  );
+                }),
               ),
             ],
           ),
@@ -755,7 +956,7 @@ class _DashboardScreenState extends State<DashboardScreen>
               end: Alignment.topCenter,
               colors: isToday
                   ? [AppColors.accent, AppColors.accent.withValues(alpha: 0.7)]
-                  : [const Color(0xFF4A4A4A), const Color(0xFF383838)],
+                  : [AppColors.chartCharcoal, AppColors.chartCharcoalDark],
             ),
             borderRadius: BorderRadius.circular(8),
             boxShadow: isToday
@@ -786,6 +987,28 @@ class _DashboardScreenState extends State<DashboardScreen>
   // ─── Categories / Activity Feed ──────────────────────────
 
   Widget _buildRecentCategories() {
+    final categories = _transactions.categoryTotals.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    final topCategories = categories.take(5).toList();
+    final items = topCategories.isEmpty
+        ? [
+            _buildCategoryBox(
+              'No spending yet',
+              '$_currency 0',
+              PhosphorIcons.sparkle(PhosphorIconsStyle.light),
+              PhosphorIcons.sparkle(PhosphorIconsStyle.light),
+            ),
+          ]
+        : topCategories.map((entry) {
+            final icon = _categoryIcon(entry.key);
+            return _buildCategoryBox(
+              entry.key,
+              '$_currency ${NumberFormat('#,###').format(entry.value)}',
+              icon,
+              icon,
+            );
+          }).toList();
+
     return SlideTransition(
       position: _bentoSlide,
       child: FadeTransition(
@@ -796,49 +1019,53 @@ class _DashboardScreenState extends State<DashboardScreen>
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text('Top Spending', style: AppTypography.h3),
-                Text(
-                  'See all',
-                  style: AppTypography.label.copyWith(color: AppColors.accent),
+                Semantics(
+                  button: true,
+                  label: 'See all transactions',
+                  child: GestureDetector(
+                    key: const ValueKey('top_spending_see_all'),
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => _selectTab(2),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 4,
+                        vertical: 8,
+                      ),
+                      child: Text(
+                        'See all',
+                        style: AppTypography.label.copyWith(
+                          color: AppColors.accent,
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ),
             const SizedBox(height: AppSpacing.md),
-            // Horizontal Carousel
-            SizedBox(
-              height: 100, // accommodate card height + shadow padding
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                physics: const BouncingScrollPhysics(),
-                clipBehavior: Clip
-                    .none, // Important to prevent clipping the beautiful soft shadows
-                children: [
-                  _buildCategoryBox(
-                    'Food & Dining',
-                    'Rs. 4,200',
-                    PhosphorIcons.forkKnife(PhosphorIconsStyle.light),
-                    PhosphorIcons.forkKnife(PhosphorIconsStyle.light),
-                  ),
-                  _buildCategoryBox(
-                    'Transport',
-                    'Rs. 1,200',
-                    PhosphorIcons.car(PhosphorIconsStyle.light),
-                    PhosphorIcons.car(PhosphorIconsStyle.light),
-                  ),
-                  _buildCategoryBox(
-                    'Shopping',
-                    'Rs. 8,400',
-                    PhosphorIcons.shoppingBag(PhosphorIconsStyle.light),
-                    PhosphorIcons.shoppingBag(PhosphorIconsStyle.light),
-                  ),
-                ],
-              ),
+            Column(
+              key: const ValueKey('top_spending_static_list'),
+              children: items,
             ),
-            // Padding so you can scroll past the glass dock at the bottom
-            const SizedBox(height: 120),
           ],
         ),
       ),
     );
+  }
+
+  IconData _categoryIcon(String category) {
+    switch (category.toLowerCase()) {
+      case 'dining':
+      case 'food':
+      case 'food & dining':
+        return PhosphorIcons.forkKnife(PhosphorIconsStyle.light);
+      case 'transport':
+        return PhosphorIcons.car(PhosphorIconsStyle.light);
+      case 'shopping':
+        return PhosphorIcons.shoppingBag(PhosphorIconsStyle.light);
+      default:
+        return PhosphorIcons.tag(PhosphorIconsStyle.light);
+    }
   }
 
   Widget _buildCategoryBox(
@@ -848,10 +1075,9 @@ class _DashboardScreenState extends State<DashboardScreen>
     IconData watermark,
   ) {
     return Container(
-      width: 270, // Premium wide card format
+      width: double.infinity,
       height: 90,
       margin: const EdgeInsets.only(
-        right: AppSpacing.md,
         bottom: 10,
       ), // Bottom margin allows shadow breathing room
       decoration: BoxDecoration(
@@ -881,7 +1107,7 @@ class _DashboardScreenState extends State<DashboardScreen>
             Padding(
               padding: const EdgeInsets.symmetric(
                 horizontal: AppSpacing.lg,
-                vertical: 16,
+                vertical: 8,
               ),
               child: Row(
                 children: [
@@ -1056,33 +1282,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                     25, // Extends proudly above the visual edge of the glass pill
                 child: GestureDetector(
                   onTap: () async {
-                    HapticFeedback.mediumImpact();
-                    setState(() => _isSheetOpen = true);
-
-                    final result = await showModalBottomSheet(
-                      context: context,
-                      isScrollControlled: true,
-                      backgroundColor: Colors.transparent,
-                      useSafeArea: true,
-                      barrierColor: AppColors.primary.withValues(alpha: 0.12),
-                      builder: (context) => Stack(
-                        children: [
-                          Positioned.fill(
-                            child: BackdropFilter(
-                              filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-                              child: const SizedBox.expand(),
-                            ),
-                          ),
-                          const AddTransactionSheet(),
-                        ],
-                      ),
-                    );
-
-                    setState(() => _isSheetOpen = false);
-
-                    if (result == true) {
-                      // Success toast or refresh logic
-                    }
+                    await _openAddTransaction(AddTransactionTab.voice);
                   },
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
@@ -1094,12 +1294,12 @@ class _DashboardScreenState extends State<DashboardScreen>
                         end: Alignment.bottomCenter,
                         colors: [
                           AppColors.accent, // Neon Brand Amber
-                          const Color(0xFFE6A300), // Soft Matte Gold
+                          AppColors.accentDeep,
                         ],
                       ),
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: Colors.white.withValues(
+                        color: AppColors.surface.withValues(
                           alpha: 0.25,
                         ), // Soft matte specular rim
                         width: 0.8,
@@ -1107,7 +1307,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                       boxShadow: [
                         // Focused structural shadow
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.18),
+                          color: AppColors.primary.withValues(alpha: 0.18),
                           blurRadius: 15,
                           offset: const Offset(0, 6),
                         ),
@@ -1164,9 +1364,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     return Expanded(
       child: InkWell(
         onTap: () {
-          if (_activeTab == index) return;
-          HapticFeedback.selectionClick();
-          setState(() => _activeTab = index);
+          _selectTab(index);
         },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 300),
@@ -1204,7 +1402,7 @@ class _DashboardScreenState extends State<DashboardScreen>
               Text(
                 label,
                 style: AppTypography.caption.copyWith(
-                  color: isActive ? AppColors.primary : const Color(0xFF8C7E6E),
+                  color: isActive ? AppColors.primary : AppColors.navInactive,
                   fontWeight: isActive ? FontWeight.w800 : FontWeight.w600,
                   fontSize: 11,
                   letterSpacing: 0.1,
@@ -1215,5 +1413,26 @@ class _DashboardScreenState extends State<DashboardScreen>
         ),
       ),
     );
+  }
+}
+
+class _KeepAliveTabPage extends StatefulWidget {
+  final Widget child;
+
+  const _KeepAliveTabPage({required this.child});
+
+  @override
+  State<_KeepAliveTabPage> createState() => _KeepAliveTabPageState();
+}
+
+class _KeepAliveTabPageState extends State<_KeepAliveTabPage>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    return widget.child;
   }
 }

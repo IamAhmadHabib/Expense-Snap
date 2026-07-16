@@ -1,22 +1,24 @@
 ---
 type: architecture
-status: planned
+status: local-and-contract-ready
 tags: [state, flutter]
 ---
 
 # State Management
 
-Current state is mostly local to screens.
+Core expense state now lives in repositories injected through `RepositoryScope`.
 
-Near-term target:
+Current state:
 
-- One repository/service for [[Transactions]].
-- Dashboard, History, and Analytics read from it.
-- Add/edit/delete write through it.
+- `TransactionRepository` stores local transactions and sync metadata.
+- `AppSettingsRepository` stores personalization/profile settings.
+- `RepositoryScope` injects repositories plus `AppServices`.
+- `KharchaBootstrap` creates the repositories/services and restores the session route.
+- Dashboard, History, Analytics, and Profile listen to repository changes.
 
 Future target:
 
-- Repository abstracts local cache and [[Firebase Architecture]].
+- Firebase-backed services implement the existing auth, sync, attachment, voice, and OCR contracts.
 
 Related:
 

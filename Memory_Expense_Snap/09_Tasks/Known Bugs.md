@@ -8,20 +8,12 @@ tags: [bugs]
 
 Current known issues are mainly product gaps/design debt:
 
-- [[Dashboard]] avatar is not connected.
-- [[Dashboard]] notification bell is not connected.
-- Dashboard Voice, Scan, and Manual quick actions are not connected.
-- Dashboard tab changes recreate tab screens and reset their local state.
-- [[History]] uses mock data.
-- History edit does not update a transaction; delete/undo is screen-local.
-- [[Analytics]] uses mock data.
 - Analytics detailed breakdown overlay cannot be opened.
-- [[Add Transaction]] save is simulated.
-- Add Transaction opens on Manual instead of the intended Voice default, and no capture mode emits a real transaction.
-- Several Profile controls are no-op or discard their edited values.
-- Login, forgot-password, logout, account deletion, rating, and feedback actions are not functionally connected.
+- Analytics active-stat and insight copy still need fully real derived logic.
+- Login, forgot-password, confirmed logout, account deletion, rating, and feedback actions are not functionally connected. Log Out now reaches its confirmation sheet.
 - Personalization defaults to USD, does not enforce the documented category minimum, and does not persist selected categories.
-- [[Design Debt]] hardcoded colors remain.
+- No current confirmed performance regression remains after the local polish pass; collect a fresh Flutter DevTools profile recording on device to verify remaining jank clusters.
+- True launch readiness still needs golden tests, final icons, permissions copy, store screenshots, privacy policy copy, and physical-device QA.
 
 Related:
 

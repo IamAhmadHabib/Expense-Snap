@@ -16,6 +16,18 @@ Checklist seeds:
 - Reduced motion consideration.
 - Text scaling.
 
+Current polish notes:
+
+- Dashboard weekly velocity three-dot action uses a 48x48 hit area and semantic button label.
+- Dashboard Top Spending "See all" has a semantic button label.
+- Compact Analytics rows were adjusted to avoid text overflow on 390px mobile width.
+
+Still pending:
+
+- Full screen-reader traversal pass on device.
+- Large text scaling audit across all screens.
+- Reduced-motion preference behavior.
+
 Related:
 
 - [[Design System]]

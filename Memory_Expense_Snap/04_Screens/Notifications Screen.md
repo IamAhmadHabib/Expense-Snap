@@ -1,14 +1,16 @@
 ---
 type: screen
-status: planned
+status: ui-built-shell
 tags: [screen, notifications]
 ---
 
 # Notifications Screen
 
-Planned screen for notification center / reminders / alerts.
+Implemented warm empty-state screen for the future notification center, reminders, and alerts.
 
-Current trigger: dashboard notification bell should route here.
+Current trigger: the dashboard notification bell routes here. The screen has an explicit back action and supports system back navigation.
+
+Current data gap: no notification source, reminder scheduling, read state, or deep-link behavior exists yet.
 
 Related:
 

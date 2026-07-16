@@ -12,6 +12,8 @@ Source:
 kharcha/lib/features/profile/profile_screen.dart
 ```
 
+Current shell note: retained Dashboard tab children preserve Profile's in-memory toggle state, and Log Out opens the existing confirmation sheet. Durable settings and confirmed auth logout remain future work.
+
 Related:
 
 - [[Profile]]

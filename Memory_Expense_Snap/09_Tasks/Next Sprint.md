@@ -8,13 +8,13 @@ tags: [sprint]
 
 Recommended sprint:
 
-1. Finish [[Phase 1 UI Shell]] connections: avatar, bell, Dashboard quick actions, correct Add Transaction initial mode, and retained tab state.
-2. Build an observable local [[Repository Plan]] with create, update, delete, undo, and derived totals.
-3. Make Manual Add Transaction save a real transaction; make Voice and Scan result UIs emit the same draft contract while their external integrations remain simulated.
-4. Feed [[Dashboard]], [[History]], and [[Analytics]] from that one source.
-5. Add unit/widget tests proving that add, edit, delete, undo, and tab navigation stay synchronized.
+1. Add Firebase packages/config for Android and iOS.
+2. Implement Firebase-backed `AuthService` behind the existing Phase C interface.
+3. Implement Firestore-backed transaction/settings sync using `remoteId`, `syncState`, and `syncFailure`.
+4. Implement Firebase Storage upload behind `AttachmentService`.
+5. Add integration tests using fake Firebase-style services before touching real network calls.
 
-Sprint outcome: one locally saved expense appears consistently in Dashboard, History, and Analytics without changing the current UI design.
+Sprint outcome: local expenses can map to account-scoped remote records without changing the current UI design.
 
 Related:
 

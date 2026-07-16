@@ -198,10 +198,12 @@ class _OnboardingIllustration2State extends State<OnboardingIllustration2>
             decoration: BoxDecoration(
               color: AppColors.surface,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.primary.withOpacity(0.06)),
+              border: Border.all(
+                color: AppColors.primary.withValues(alpha: 0.06),
+              ),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.primary.withOpacity(0.05),
+                  color: AppColors.primary.withValues(alpha: 0.05),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),
@@ -254,7 +256,7 @@ class _OnboardingIllustration2State extends State<OnboardingIllustration2>
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.primary.withOpacity(0.06),
+                  color: AppColors.primary.withValues(alpha: 0.06),
                   blurRadius: 20,
                   offset: const Offset(0, 8),
                 ),
@@ -305,7 +307,7 @@ class _DashedLinesPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = AppColors.accent.withOpacity(0.6)
+      ..color = AppColors.accent.withValues(alpha: 0.6)
       ..style = PaintingStyle.fill;
 
     void drawMovingDashes(Path path) {

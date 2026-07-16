@@ -1,13 +1,26 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
-import 'dart:ui' as ui;
 import 'package:intl/intl.dart';
+import '../../models/app_settings.dart';
+import '../../repositories/app_settings_repository.dart';
+import '../../repositories/repository_scope.dart';
+import '../../repositories/transaction_repository.dart';
+import '../../utils/category_utils.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  final AppSettingsRepository? settingsRepository;
+  final TransactionRepository? transactionRepository;
+
+  const ProfileScreen({
+    super.key,
+    this.settingsRepository,
+    this.transactionRepository,
+  });
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -17,6 +30,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     with TickerProviderStateMixin {
   late AnimationController _entryController;
   late AnimationController _statsController;
+  Timer? _statsDelayTimer;
   bool _darkMode = false;
   bool _weeklyDigest = true;
   bool _budgetAlerts = true;
@@ -24,6 +38,9 @@ class _ProfileScreenState extends State<ProfileScreen>
   bool _dailyReminder = false;
   bool _notificationsEnabled = true;
   String _reminderTime = '9:00 PM';
+  late AppSettingsRepository _settingsRepository;
+  late TransactionRepository _transactionRepository;
+  bool _repositoriesInitialized = false;
 
   @override
   void initState() {
@@ -38,17 +55,61 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
 
     _entryController.forward();
-    Future.delayed(const Duration(milliseconds: 300), () {
+    _statsDelayTimer = Timer(const Duration(milliseconds: 300), () {
       if (mounted) _statsController.forward();
     });
   }
 
   @override
   void dispose() {
+    if (_repositoriesInitialized) {
+      _settingsRepository.removeListener(_onRepositoryChanged);
+      _transactionRepository.removeListener(_onRepositoryChanged);
+    }
+    _statsDelayTimer?.cancel();
     _entryController.dispose();
     _statsController.dispose();
     super.dispose();
   }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_repositoriesInitialized) return;
+    final scope = RepositoryScope.maybeOf(context);
+    _settingsRepository =
+        widget.settingsRepository ??
+        scope?.settings ??
+        AppSettingsRepository.inMemory();
+    _transactionRepository =
+        widget.transactionRepository ??
+        scope?.transactions ??
+        TransactionRepository.inMemory();
+    _syncLocalSettings();
+    _settingsRepository.addListener(_onRepositoryChanged);
+    _transactionRepository.addListener(_onRepositoryChanged);
+    _repositoriesInitialized = true;
+  }
+
+  void _syncLocalSettings() {
+    final settings = _settingsRepository.settings;
+    _darkMode = settings.darkMode;
+    _weeklyDigest = settings.monthlyDigest;
+    _budgetAlerts = settings.budgetAlerts;
+    _spendingInsights = settings.spendingInsights;
+    _notificationsEnabled = settings.notificationsEnabled;
+  }
+
+  void _onRepositoryChanged() {
+    if (!mounted) return;
+    setState(_syncLocalSettings);
+  }
+
+  Future<void> _updateSettings(AppSettings settings) {
+    return _settingsRepository.update(settings);
+  }
+
+  AppSettings get _currentSettings => _settingsRepository.settings;
 
   @override
   Widget build(BuildContext context) {
@@ -64,68 +125,80 @@ class _ProfileScreenState extends State<ProfileScreen>
               physics: const BouncingScrollPhysics(),
               child: Column(
                 children: [
-                  _buildHeader(),
+                  RepaintBoundary(child: _buildHeader()),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: Column(
                       children: [
-                        _buildSectionStaggered(
-                          index: 0,
-                          label: 'Personal Info',
-                          showArrow: false,
-                          onLabelTap: () =>
-                              _showEditInfo(context, 'Full Name', 'Ahmad'),
-                          children: [
-                            _settingsRow(
-                              PhosphorIcons.user(),
+                        RepaintBoundary(
+                          child: _buildSectionStaggered(
+                            index: 0,
+                            label: 'Personal Info',
+                            showArrow: false,
+                            onLabelTap: () => _showEditInfo(
+                              context,
                               'Full Name',
-                              'Ahmad',
-                              onTap: () =>
-                                  _showEditInfo(context, 'Full Name', 'Ahmad'),
+                              _settingsRepository.settings.userName,
                             ),
-                            _settingsRow(
-                              PhosphorIcons.envelope(),
-                              'Email',
-                              'ahmad@gmail.com',
-                              isTappable: false,
-                            ),
-                          ],
+                            children: [
+                              _settingsRow(
+                                PhosphorIcons.user(),
+                                'Full Name',
+                                _settingsRepository.settings.userName,
+                                onTap: () => _showEditInfo(
+                                  context,
+                                  'Full Name',
+                                  _settingsRepository.settings.userName,
+                                ),
+                              ),
+                              _settingsRow(
+                                PhosphorIcons.envelope(),
+                                'Email',
+                                'ahmad@gmail.com',
+                                isTappable: false,
+                              ),
+                            ],
+                          ),
                         ),
-                        _buildSectionStaggered(
-                          index: 1,
-                          label: 'Budget',
-                          children: [
-                            _settingsRow(
-                              PhosphorIcons.chartPieSlice(),
-                              'Monthly Budget',
-                              'Rs. 25,000',
-                              onTap: () => _showMonthlyBudgetPicker(context),
-                            ),
-                            _settingsRow(
-                              PhosphorIcons.listBullets(),
-                              'Manage Categories',
-                              '',
-                              onTap: () => _showCategoryBudgets(context),
-                            ),
-                            _settingsRow(
-                              PhosphorIcons.arrowsClockwise(),
-                              'Budget resets on',
-                              '1st',
-                              onTap: () => _showResetDayPicker(context),
-                            ),
-                          ],
+                        RepaintBoundary(
+                          child: _buildSectionStaggered(
+                            index: 1,
+                            label: 'Budget',
+                            children: [
+                              _settingsRow(
+                                PhosphorIcons.chartPieSlice(),
+                                'Monthly Budget',
+                                '${_settingsRepository.settings.currencySymbol} ${NumberFormat('#,###').format(_settingsRepository.settings.monthlyBudget)}',
+                                onTap: () => _showMonthlyBudgetPicker(context),
+                              ),
+                              _settingsRow(
+                                PhosphorIcons.listBullets(),
+                                'Manage Categories',
+                                '',
+                                onTap: () => _showCategoryBudgets(context),
+                              ),
+                              _settingsRow(
+                                PhosphorIcons.arrowsClockwise(),
+                                'Budget resets on',
+                                '${_settingsRepository.settings.resetDay}${_getDaySuffix(_settingsRepository.settings.resetDay)}',
+                                onTap: () => _showResetDayPicker(context),
+                              ),
+                            ],
+                          ),
                         ),
-                        _buildSectionStaggered(
-                          index: 2,
-                          label: 'Currency',
-                          children: [
-                            _settingsRow(
-                              PhosphorIcons.currencyCircleDollar(),
-                              'Currency',
-                              'PKR',
-                              onTap: () => _showCurrencyPicker(context),
-                            ),
-                          ],
+                        RepaintBoundary(
+                          child: _buildSectionStaggered(
+                            index: 2,
+                            label: 'Currency',
+                            children: [
+                              _settingsRow(
+                                PhosphorIcons.currencyCircleDollar(),
+                                'Currency',
+                                _settingsRepository.settings.currencySymbol,
+                                onTap: () => _showCurrencyPicker(context),
+                              ),
+                            ],
+                          ),
                         ),
                         _buildSectionStaggered(
                           index: 3,
@@ -135,7 +208,11 @@ class _ProfileScreenState extends State<ProfileScreen>
                               PhosphorIcons.bellRinging(),
                               'Enable Notifications',
                               _notificationsEnabled,
-                              (v) => setState(() => _notificationsEnabled = v),
+                              (v) => _updateSettings(
+                                _settingsRepository.settings.copyWith(
+                                  notificationsEnabled: v,
+                                ),
+                              ),
                             ),
                             if (_notificationsEnabled) ...[
                               Divider(
@@ -151,19 +228,31 @@ class _ProfileScreenState extends State<ProfileScreen>
                                 PhosphorIcons.bell(),
                                 'Weekly digest',
                                 _weeklyDigest,
-                                (v) => setState(() => _weeklyDigest = v),
+                                (v) => _updateSettings(
+                                  _settingsRepository.settings.copyWith(
+                                    monthlyDigest: v,
+                                  ),
+                                ),
                               ),
                               _settingsToggle(
                                 PhosphorIcons.warningCircle(),
                                 'Budget alerts',
                                 _budgetAlerts,
-                                (v) => setState(() => _budgetAlerts = v),
+                                (v) => _updateSettings(
+                                  _settingsRepository.settings.copyWith(
+                                    budgetAlerts: v,
+                                  ),
+                                ),
                               ),
                               _settingsToggle(
                                 PhosphorIcons.lightbulb(),
                                 'Spending insights',
                                 _spendingInsights,
-                                (v) => setState(() => _spendingInsights = v),
+                                (v) => _updateSettings(
+                                  _settingsRepository.settings.copyWith(
+                                    spendingInsights: v,
+                                  ),
+                                ),
                               ),
                               _settingsToggle(
                                 PhosphorIcons.calendar(),
@@ -219,14 +308,18 @@ class _ProfileScreenState extends State<ProfileScreen>
                             _settingsRow(
                               PhosphorIcons.globe(),
                               'Language',
-                              'English',
+                              _settingsRepository.settings.language,
                               onTap: () => _showLanguagePicker(context),
                             ),
                             _settingsToggle(
                               PhosphorIcons.moon(),
                               'Dark Mode',
                               _darkMode,
-                              (v) => setState(() => _darkMode = v),
+                              (v) => _updateSettings(
+                                _settingsRepository.settings.copyWith(
+                                  darkMode: v,
+                                ),
+                              ),
                             ),
                             _settingsRow(
                               PhosphorIcons.star(),
@@ -267,14 +360,19 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   // --- Specialized Sheets & Pickers ---
 
-  void _showCurrencyPicker(BuildContext context) {
+  Future<void> _showCurrencyPicker(BuildContext context) async {
     HapticFeedback.mediumImpact();
-    showModalBottomSheet(
+    final symbol = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => _CurrencyPickerContent(),
+      builder: (context) => _CurrencyPickerContent(
+        currentSymbol: _currentSettings.currencySymbol,
+      ),
     );
+    if (symbol != null) {
+      await _updateSettings(_currentSettings.copyWith(currencySymbol: symbol));
+    }
   }
 
   void _showCategoryBudgets(BuildContext context) {
@@ -284,24 +382,35 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
-  void _showMonthlyBudgetPicker(BuildContext context) {
+  Future<void> _showMonthlyBudgetPicker(BuildContext context) async {
     HapticFeedback.mediumImpact();
-    showModalBottomSheet(
+    final budget = await showModalBottomSheet<double>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => _MonthlyBudgetSheet(),
+      builder: (context) =>
+          _MonthlyBudgetSheet(initialAmount: _currentSettings.monthlyBudget),
     );
+    if (budget != null) {
+      await _updateSettings(_currentSettings.copyWith(monthlyBudget: budget));
+    }
   }
 
-  void _showEditInfo(BuildContext context, String field, String current) {
+  Future<void> _showEditInfo(
+    BuildContext context,
+    String field,
+    String current,
+  ) async {
     HapticFeedback.mediumImpact();
-    showModalBottomSheet(
+    final value = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => _EditInfoSheet(field: field, current: current),
     );
+    if (value != null && value.trim().isNotEmpty && field == 'Full Name') {
+      await _updateSettings(_currentSettings.copyWith(userName: value.trim()));
+    }
   }
 
   void _showResetDayPicker(BuildContext context) {
@@ -317,7 +426,11 @@ class _ProfileScreenState extends State<ProfileScreen>
         ),
         onSelected: (val) {
           HapticFeedback.lightImpact();
-          // Logic to update reset day
+          final day = int.tryParse(val.split(RegExp(r'\D')).first);
+          if (day != null) {
+            _updateSettings(_currentSettings.copyWith(resetDay: day));
+          }
+          Navigator.pop(context);
         },
       ),
     );
@@ -400,7 +513,10 @@ class _ProfileScreenState extends State<ProfileScreen>
       builder: (context) => _SimplePickerSheet(
         title: 'Language',
         items: const ['English', 'Urdu', 'Arabic', 'French', 'Spanish'],
-        onSelected: (val) {},
+        onSelected: (val) {
+          _updateSettings(_currentSettings.copyWith(language: val));
+          Navigator.pop(context);
+        },
       ),
     );
   }
@@ -574,10 +690,10 @@ class _ProfileScreenState extends State<ProfileScreen>
               HapticFeedback.lightImpact();
               onChanged(v);
             },
-            activeColor: Colors.white,
+            activeThumbColor: AppColors.surface,
             activeTrackColor: AppColors.primary,
-            inactiveThumbColor: Colors.white,
-            inactiveTrackColor: const Color(0xFFE0E0E0),
+            inactiveThumbColor: AppColors.surface,
+            inactiveTrackColor: AppColors.border,
           ),
         ],
       ),
@@ -696,7 +812,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                   ),
                   child: CircleAvatar(
                     radius: 44,
-                    backgroundColor: Color(0xFF242018),
+                    backgroundColor: AppColors.warmCharcoal,
                     child: Icon(
                       PhosphorIcons.user(PhosphorIconsStyle.fill),
                       color: AppColors.textOnPrimary,
@@ -723,9 +839,13 @@ class _ProfileScreenState extends State<ProfileScreen>
             ),
             const SizedBox(height: 16),
             GestureDetector(
-              onTap: () => _showEditInfo(context, 'Full Name', 'Ahmad'),
+              onTap: () => _showEditInfo(
+                context,
+                'Full Name',
+                _currentSettings.userName,
+              ),
               child: Text(
-                'Ahmad',
+                _currentSettings.userName,
                 style: AppTypography.h2.copyWith(
                   color: AppColors.surface,
                   fontWeight: FontWeight.w900,
@@ -748,45 +868,68 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   Widget _buildStatsRow() {
+    final expenseTransactions = _transactionRepository.transactions
+        .where((transaction) => !transaction.isIncome)
+        .toList();
+    final spent = expenseTransactions.fold<double>(
+      0,
+      (total, transaction) => total + transaction.amount,
+    );
+    final categories = expenseTransactions
+        .map((transaction) => CategoryUtils.group(transaction.category))
+        .toSet()
+        .length;
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        _statItem('47', 'Expenses'),
+        _statItem(
+          NumberFormat.compact().format(expenseTransactions.length),
+          'Expenses',
+        ),
         _verticalDivider(),
-        _statItem('Rs.24k', 'Spent'),
+        _statItem(
+          '${_currentSettings.currencySymbol}${NumberFormat.compact().format(spent)}',
+          'Spent',
+        ),
         _verticalDivider(),
-        _statItem('8', 'Categories'),
+        _statItem(NumberFormat.compact().format(categories), 'Categories'),
       ],
     );
   }
 
   Widget _statItem(String value, String label) {
-    return AnimatedBuilder(
-      animation: _statsController,
-      builder: (context, child) {
-        return Column(
-          children: [
-            Text(
-              value,
-              style: AppTypography.h3.copyWith(
-                color: AppColors.surface,
-                fontWeight: FontWeight.w900,
-                fontSize: 20,
+    return Expanded(
+      child: AnimatedBuilder(
+        animation: _statsController,
+        builder: (context, child) {
+          return Column(
+            children: [
+              Text(
+                value,
+                maxLines: 1,
+                style: AppTypography.h3.copyWith(
+                  color: AppColors.surface,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 20,
+                ),
               ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: AppTypography.overline.copyWith(
-                color: AppColors.surface.withValues(alpha: 0.6),
-                fontSize: 12,
-                letterSpacing: 0.5,
-                fontWeight: FontWeight.w600,
+              const SizedBox(height: 4),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTypography.overline.copyWith(
+                  color: AppColors.surface.withValues(alpha: 0.6),
+                  fontSize: 12,
+                  letterSpacing: 0.5,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-            ),
-          ],
-        );
-      },
+            ],
+          );
+        },
+      ),
     );
   }
 
@@ -822,6 +965,7 @@ class _ProfileScreenState extends State<ProfileScreen>
             'Log Out',
             '',
             isTappable: true,
+            onTap: () => _showLogoutConfirmation(context),
           ),
         ),
         const SizedBox(height: 16),
@@ -882,12 +1026,24 @@ class _ProfileScreenState extends State<ProfileScreen>
 }
 
 class _MonthlyBudgetSheet extends StatefulWidget {
+  final double initialAmount;
+
+  const _MonthlyBudgetSheet({required this.initialAmount});
+
   @override
   State<_MonthlyBudgetSheet> createState() => _MonthlyBudgetSheetState();
 }
 
 class _MonthlyBudgetSheetState extends State<_MonthlyBudgetSheet> {
-  String _amount = '25000';
+  late String _amount;
+
+  @override
+  void initState() {
+    super.initState();
+    _amount = widget.initialAmount > 0
+        ? widget.initialAmount.toStringAsFixed(0)
+        : '0';
+  }
 
   void _onKeyPress(String key) {
     HapticFeedback.lightImpact();
@@ -1000,7 +1156,7 @@ class _MonthlyBudgetSheetState extends State<_MonthlyBudgetSheet> {
             child: GestureDetector(
               onTap: () {
                 HapticFeedback.mediumImpact();
-                Navigator.pop(context);
+                Navigator.pop(context, amountValue);
               },
               child: Container(
                 width: double.infinity,
@@ -1271,12 +1427,16 @@ class CategoryBudgetScreen extends StatelessWidget {
 }
 
 class _CurrencyPickerContent extends StatefulWidget {
+  final String currentSymbol;
+
+  const _CurrencyPickerContent({required this.currentSymbol});
+
   @override
   State<_CurrencyPickerContent> createState() => _CurrencyPickerContentState();
 }
 
 class _CurrencyPickerContentState extends State<_CurrencyPickerContent> {
-  String _selected = 'PKR';
+  late String _selected;
   String _searchQuery = '';
 
   final List<Map<String, String>> _allCurrencies = [
@@ -1320,6 +1480,22 @@ class _CurrencyPickerContentState extends State<_CurrencyPickerContent> {
     {'code': 'BDT', 'name': 'Bangladeshi Taka', 'symbol': '৳'},
     {'code': 'NPR', 'name': 'Nepalese Rupee', 'symbol': 'Rs'},
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _selected = _currencyCodeForSymbol(widget.currentSymbol);
+  }
+
+  String _currencyCodeForSymbol(String symbol) {
+    final normalized = symbol.trim();
+    if (normalized == r'$') return 'USD';
+    final match = _allCurrencies.cast<Map<String, String>?>().firstWhere(
+      (currency) => currency?['symbol'] == normalized,
+      orElse: () => null,
+    );
+    return match?['code'] ?? 'PKR';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1401,7 +1577,7 @@ class _CurrencyPickerContentState extends State<_CurrencyPickerContent> {
             child: ListView.separated(
               padding: const EdgeInsets.only(bottom: 24),
               itemCount: filtered.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              separatorBuilder: (context, index) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
                 final curr = filtered[index];
                 final isSelected = _selected == curr['code'];
@@ -1514,7 +1690,10 @@ class _CurrencyPickerContentState extends State<_CurrencyPickerContent> {
             child: GestureDetector(
               onTap: () {
                 HapticFeedback.mediumImpact();
-                Navigator.pop(context);
+                final selected = _allCurrencies.firstWhere(
+                  (currency) => currency['code'] == _selected,
+                );
+                Navigator.pop(context, selected['symbol']);
               },
               child: Container(
                 width: double.infinity,
@@ -1738,7 +1917,7 @@ class _SimplePickerSheet extends StatelessWidget {
           Expanded(
             child: ListView.separated(
               itemCount: items.length,
-              separatorBuilder: (_, __) =>
+              separatorBuilder: (context, index) =>
                   Divider(color: AppColors.primary.withValues(alpha: 0.05)),
               itemBuilder: (context, index) {
                 return ListTile(
@@ -1943,7 +2122,7 @@ class _EditInfoSheetState extends State<_EditInfoSheet> {
             ElevatedButton(
               onPressed: () {
                 HapticFeedback.mediumImpact();
-                Navigator.pop(context);
+                Navigator.pop(context, _controller.text.trim());
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
@@ -1972,7 +2151,7 @@ class _AddCategorySheet extends StatefulWidget {
 
 class _AddCategorySheetState extends State<_AddCategorySheet> {
   final TextEditingController _controller = TextEditingController();
-  IconData _selectedIcon = PhosphorIcons.tag();
+  final IconData _selectedIcon = PhosphorIcons.tag();
 
   @override
   Widget build(BuildContext context) {

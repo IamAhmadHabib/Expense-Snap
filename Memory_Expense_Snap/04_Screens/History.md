@@ -1,6 +1,6 @@
 ---
 type: screen
-status: ui-built-mock-data
+status: local-data-connected
 tags: [screen, history]
 ---
 
@@ -8,14 +8,17 @@ tags: [screen, history]
 
 Ledger-style transaction history.
 
-Confirmed live-code gaps:
+Current live-code behavior:
 
-- The screen owns and regenerates its own mock transaction list.
-- Edit opens a pre-filled [[Add Transaction]] sheet but ignores the result, so edits are not applied.
-- Delete and undo affect only the screen-local list.
-- The local list resets when the Dashboard shell rebuilds this tab.
+- History reads from the shared local transaction repository.
+- Edit opens a pre-filled [[Add Transaction]] sheet and saves back through the repository.
+- Delete and undo mutate the shared repository.
+- Food filtering normalizes Dining/Food/Food & Dining into the Food group.
+- The This Month chip is treated as a date filter only, not as a category filter.
 
-History should read and mutate the shared source in [[Repository Plan]].
+Remaining gaps:
+
+- Search/filter UX is local to the screen and may need more complete saved filter behavior later.
 
 Related:
 

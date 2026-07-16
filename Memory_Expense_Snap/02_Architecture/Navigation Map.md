@@ -23,6 +23,11 @@ flowchart TD
   I --> K
 ```
 
+Dashboard tab back behavior:
+
+- System back from Analytics, History, or Profile selects the Dashboard Home tab.
+- System back only leaves the Dashboard route when Home is already active.
+
 Related:
 
 - [[Flutter Entry Point]]

@@ -6,9 +6,9 @@ tags: [data-flow, transactions]
 
 # Data Flow
 
-The missing spine of the app is a shared transaction data flow.
+The app now has a shared local transaction data flow plus frontend contracts for backend sync and capture integrations.
 
-Target flow:
+Current prepared flow:
 
 ```mermaid
 flowchart LR
@@ -17,8 +17,13 @@ flowchart LR
   B --> D["History"]
   B --> E["Analytics"]
   B --> F["Local Cache"]
-  B --> G["Firestore later"]
+  B --> G["Sync Service Contract"]
+  G --> H["Firestore later"]
+  I["Voice/OCR Adapter Contracts"] --> A
+  J["Attachment Service Contract"] --> B
 ```
+
+`KharchaBootstrap` creates the local repositories, restores the app session through `AuthService`, injects `AppServices`, and chooses the initial route.
 
 Related:
 

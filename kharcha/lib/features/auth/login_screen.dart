@@ -323,7 +323,7 @@ class _LoginScreenState extends State<LoginScreen>
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
             borderSide: const BorderSide(
-              color: Colors.black,
+              color: AppColors.primary,
               width: 1.5,
             ), // High-contrast black focus
           ),

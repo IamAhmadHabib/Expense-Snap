@@ -6,12 +6,22 @@ import 'package:kharcha/theme/app_spacing.dart';
 import 'package:kharcha/theme/app_typography.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:intl/intl.dart';
+import 'package:kharcha/models/transaction.dart';
+import 'package:kharcha/repositories/repository_scope.dart';
+import 'package:kharcha/repositories/transaction_repository.dart';
 import 'dart:math' as math;
 
 class AnalyticsScreen extends StatefulWidget {
   final VoidCallback? onBack;
   final Function(bool)? onToggleOverlay;
-  const AnalyticsScreen({super.key, this.onBack, this.onToggleOverlay});
+  final TransactionRepository? repository;
+  const AnalyticsScreen({
+    super.key,
+    this.onBack,
+    this.onToggleOverlay,
+    this.repository,
+  });
 
   @override
   State<AnalyticsScreen> createState() => _AnalyticsScreenState();
@@ -21,8 +31,12 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
     with TickerProviderStateMixin {
   String _selectedPeriod = 'Days';
   int _selectedActivityIndex = -1;
-  String _matrixMonthLabel = 'APR 2026';
+  String _matrixMonthLabel = DateFormat(
+    'MMM yyyy',
+  ).format(DateTime.now()).toUpperCase();
   bool _isBooksOpen = false;
+  late TransactionRepository _repository;
+  bool _repositoryInitialized = false;
   late AnimationController _entranceController;
   late AnimationController _booksController;
 
@@ -43,44 +57,97 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
 
   @override
   void dispose() {
+    if (_repositoryInitialized) {
+      _repository.removeListener(_onRepositoryChanged);
+    }
     _entranceController.dispose();
     _booksController.dispose();
     super.dispose();
   }
 
-  // --- Mock Data Helpers ---
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_repositoryInitialized) return;
+    _repository =
+        widget.repository ??
+        RepositoryScope.maybeOf(context)?.transactions ??
+        TransactionRepository.inMemory();
+    _repository.addListener(_onRepositoryChanged);
+    _repositoryInitialized = true;
+  }
+
+  void _onRepositoryChanged() {
+    if (mounted) setState(() {});
+  }
 
   List<FlSpot> _getLineChartSpots() {
+    final expenses = _repository.transactions.where((item) => !item.isIncome);
+    final now = DateTime.now();
     switch (_selectedPeriod) {
       case 'Days':
-        return [
-          const FlSpot(0, 1.2),
-          const FlSpot(4, 2.5),
-          const FlSpot(8, 1.8),
-          const FlSpot(12, 3.2),
-          const FlSpot(16, 2.7),
-          const FlSpot(20, 4.5),
-          const FlSpot(24, 3.8),
-        ];
+        return List.generate(7, (index) {
+          final startHour = index * 4;
+          final total = expenses
+              .where(
+                (item) =>
+                    item.date.year == now.year &&
+                    item.date.month == now.month &&
+                    item.date.day == now.day &&
+                    item.date.hour >= startHour &&
+                    item.date.hour < startHour + 4,
+              )
+              .fold(0.0, (sum, item) => sum + item.amount);
+          return FlSpot(startHour.toDouble(), total / 1000);
+        });
       case 'Weeks':
-        return [
-          const FlSpot(0, 8),
-          const FlSpot(1, 12),
-          const FlSpot(2, 7.5),
-          const FlSpot(3, 15),
-        ];
+        return List.generate(4, (index) {
+          final total = expenses
+              .where(
+                (item) =>
+                    item.date.year == now.year &&
+                    item.date.month == now.month &&
+                    ((item.date.day - 1) ~/ 7).clamp(0, 3) == index,
+              )
+              .fold(0.0, (sum, item) => sum + item.amount);
+          return FlSpot(index.toDouble(), total / 1000);
+        });
       case 'Months':
-        return [
-          const FlSpot(0, 35),
-          const FlSpot(1, 42),
-          const FlSpot(2, 38),
-          const FlSpot(3, 50),
-          const FlSpot(4, 45),
-          const FlSpot(5, 55),
-        ];
+        return List.generate(6, (index) {
+          final month = DateTime(now.year, now.month - 5 + index);
+          final total = expenses
+              .where(
+                (item) =>
+                    item.date.year == month.year &&
+                    item.date.month == month.month,
+              )
+              .fold(0.0, (sum, item) => sum + item.amount);
+          return FlSpot(index.toDouble(), total / 1000);
+        });
       default:
         return [];
     }
+  }
+
+  List<Transaction> _getPeriodExpenses() {
+    final now = DateTime.now();
+    return _repository.transactions.where((item) {
+      if (item.isIncome) return false;
+      switch (_selectedPeriod) {
+        case 'Days':
+          return item.date.year == now.year &&
+              item.date.month == now.month &&
+              item.date.day == now.day;
+        case 'Weeks':
+          return item.date.year == now.year && item.date.month == now.month;
+        case 'Months':
+          final start = DateTime(now.year, now.month - 5);
+          final end = DateTime(now.year, now.month + 1);
+          return !item.date.isBefore(start) && item.date.isBefore(end);
+        default:
+          return false;
+      }
+    }).toList();
   }
 
   double _getMaxY() {
@@ -111,13 +178,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
   }
 
   String _getAverageSpendingText() {
-    double avg = 0;
-    final spots = _getLineChartSpots();
-    if (spots.isNotEmpty) {
-      avg = spots.map((e) => e.y).reduce((a, b) => a + b) / spots.length;
-    }
-
-    double actualValue = avg * 1000;
+    final expenses = _getPeriodExpenses();
+    final total = expenses.fold<double>(0, (sum, item) => sum + item.amount);
+    final actualValue = expenses.isEmpty ? 0.0 : total / expenses.length;
     if (actualValue < 1000) {
       return 'Rs. ${actualValue.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}';
     }
@@ -163,13 +226,13 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                     const SizedBox(height: AppSpacing.lg),
                     _buildPeriodSelector(),
                     const SizedBox(height: AppSpacing.xl),
-                    _buildMainTrendChart(),
+                    RepaintBoundary(child: _buildMainTrendChart()),
                     const SizedBox(height: AppSpacing.xl),
-                    _buildDistributionRow(),
+                    RepaintBoundary(child: _buildDistributionRow()),
                     const SizedBox(height: AppSpacing.xl),
-                    _buildHeatmapSection(),
+                    RepaintBoundary(child: _buildHeatmapSection()),
                     const SizedBox(height: AppSpacing.xl),
-                    _buildFloatingInsight(),
+                    RepaintBoundary(child: _buildFloatingInsight()),
                     const SizedBox(height: AppSpacing.md),
                   ],
                 ),
@@ -229,7 +292,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: const Color(0xFFF0EDE8),
+        color: AppColors.surfaceVariant,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
@@ -303,7 +366,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Average Spending',
+                      'Avg per expense',
                       style: AppTypography.caption.copyWith(
                         color: AppColors.surface.withValues(alpha: 0.5),
                       ),
@@ -427,7 +490,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                     isCurved: true,
                     curveSmoothness: 0.35,
                     gradient: const LinearGradient(
-                      colors: [AppColors.accent, Color(0xFFF5DEB3)],
+                      colors: [AppColors.accent, AppColors.accentLight],
                     ),
                     barWidth: 4,
                     isStrokeCapRound: true,
@@ -488,100 +551,28 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
   }
 
   Map<String, dynamic> _getCategoryData() {
-    switch (_selectedPeriod) {
-      case 'Days':
-        return {
-          'total': 'Rs. 2,450',
-          'items': [
-            {
-              'label': 'Food',
-              'amount': 'Rs. 1,200',
-              'value': 0.65,
-              'color': AppColors.accent,
-            },
-            {
-              'label': 'Travel',
-              'amount': 'Rs. 850',
-              'value': 0.45,
-              'color': const Color(0xFF908D89),
-            },
-            {
-              'label': 'Shopping',
-              'amount': 'Rs. 400',
-              'value': 0.25,
-              'color': const Color(0xFF4A4A4A),
-            },
-            {
-              'label': 'Health',
-              'amount': 'Rs. 0',
-              'value': 0.08,
-              'color': AppColors.primary,
-            },
-          ],
-        };
-      case 'Weeks': // Monthly
-        return {
-          'total': 'Rs. 70.1k',
-          'items': [
-            {
-              'label': 'Housing',
-              'amount': 'Rs. 45k',
-              'value': 0.85,
-              'color': AppColors.primary,
-            },
-            {
-              'label': 'Food',
-              'amount': 'Rs. 12.4k',
-              'value': 0.65,
-              'color': AppColors.accent,
-            },
-            {
-              'label': 'Shopping',
-              'amount': 'Rs. 8.2k',
-              'value': 0.45,
-              'color': const Color(0xFF4A4A4A),
-            },
-            {
-              'label': 'Travel',
-              'amount': 'Rs. 4.5k',
-              'value': 0.25,
-              'color': const Color(0xFF908D89),
-            },
-          ],
-        };
-      case 'Months': // Yearly
-        return {
-          'total': 'Rs. 840k',
-          'items': [
-            {
-              'label': 'Housing',
-              'amount': 'Rs. 540k',
-              'value': 0.92,
-              'color': AppColors.primary,
-            },
-            {
-              'label': 'Invest',
-              'amount': 'Rs. 120k',
-              'value': 0.75,
-              'color': AppColors.accent,
-            },
-            {
-              'label': 'Lifestyle',
-              'amount': 'Rs. 95k',
-              'value': 0.55,
-              'color': const Color(0xFF4A4A4A),
-            },
-            {
-              'label': 'Health',
-              'amount': 'Rs. 85k',
-              'value': 0.35,
-              'color': const Color(0xFF908D89),
-            },
-          ],
-        };
-      default:
-        return {};
-    }
+    final entries = _repository.categoryTotals.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    final total = entries.fold<double>(0, (sum, entry) => sum + entry.value);
+    const colors = [
+      AppColors.accent,
+      AppColors.chartNeutral,
+      AppColors.chartCharcoal,
+      AppColors.primary,
+    ];
+    final items = entries.take(4).toList().asMap().entries.map((indexed) {
+      final entry = indexed.value;
+      return <String, dynamic>{
+        'label': entry.key,
+        'amount': 'Rs. ${NumberFormat.compact().format(entry.value)}',
+        'value': total == 0 ? 0.0 : entry.value / total,
+        'color': colors[indexed.key],
+      };
+    }).toList();
+    return {
+      'total': 'Rs. ${NumberFormat.compact().format(total)}',
+      'items': items,
+    };
   }
 
   Widget _buildDistributionRow() {
@@ -614,10 +605,15 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'By Category',
-                    style: AppTypography.h3.copyWith(fontSize: 20),
+                  Expanded(
+                    child: Text(
+                      'By Category',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTypography.h3.copyWith(fontSize: 20),
+                    ),
                   ),
+                  const SizedBox(width: 12),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
@@ -642,23 +638,35 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                 ],
               ),
               const SizedBox(height: 24),
-              Row(
+              Column(
                 children: [
-                  // Radial Chart
-                  SizedBox(
-                    width: 130,
-                    height: 130,
-                    child: CustomPaint(
-                      painter: RadialBarPainter(
-                        values: items.map((e) => e['value'] as double).toList(),
-                        colors: items.map((e) => e['color'] as Color).toList(),
+                  Center(
+                    child: SizedBox(
+                      width: 132,
+                      height: 132,
+                      child: CustomPaint(
+                        painter: RadialBarPainter(
+                          values: items
+                              .map((e) => e['value'] as double)
+                              .toList(),
+                          colors: items
+                              .map((e) => e['color'] as Color)
+                              .toList(),
+                        ),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 32),
-                  // Legend
-                  Expanded(
-                    child: Column(
+                  const SizedBox(height: 22),
+                  if (items.isEmpty)
+                    Text(
+                      'No spending yet',
+                      style: AppTypography.caption.copyWith(
+                        color: AppColors.primary.withValues(alpha: 0.35),
+                        fontWeight: FontWeight.w700,
+                      ),
+                    )
+                  else
+                    Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: items.map((item) {
                         return Padding(
@@ -671,7 +679,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                         );
                       }).toList(),
                     ),
-                  ),
                 ],
               ),
             ],
@@ -735,35 +742,42 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Active Stat',
-                                style: AppTypography.h3.copyWith(
-                                  fontSize: 14,
-                                  color: AppColors.primary.withValues(
-                                    alpha: 0.4,
+                          Expanded(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Active Stat',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: AppTypography.h3.copyWith(
+                                    fontSize: 14,
+                                    color: AppColors.primary.withValues(
+                                      alpha: 0.4,
+                                    ),
                                   ),
                                 ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                _selectedPeriod == 'Days'
-                                    ? 'Peak Hour'
-                                    : (_selectedPeriod == 'Weeks'
-                                          ? 'Peak Day'
-                                          : 'Peak Month'),
-                                style: AppTypography.caption.copyWith(
-                                  color: AppColors.primary.withValues(
-                                    alpha: 0.6,
+                                const SizedBox(height: 2),
+                                Text(
+                                  _selectedPeriod == 'Days'
+                                      ? 'Peak Hour'
+                                      : (_selectedPeriod == 'Weeks'
+                                            ? 'Peak Day'
+                                            : 'Peak Month'),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: AppTypography.caption.copyWith(
+                                    color: AppColors.primary.withValues(
+                                      alpha: 0.6,
+                                    ),
+                                    fontWeight: FontWeight.w900,
                                   ),
-                                  fontWeight: FontWeight.w900,
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
+                          const SizedBox(width: 12),
                           Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             crossAxisAlignment: CrossAxisAlignment.end,
@@ -810,6 +824,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
 
   Widget _categoryLegendItem(Color color, String label, String amount) {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Container(
           width: 12,
@@ -823,8 +838,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
         Expanded(
           child: Text(
             label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+            maxLines: 2,
+            overflow: TextOverflow.visible,
             style: AppTypography.bodySmall.copyWith(
               fontWeight: FontWeight.bold,
               color: AppColors.primary,
@@ -832,37 +847,43 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
             ),
           ),
         ),
-        const SizedBox(width: 12), // Minimum gap to prevent "merging"
-        Text(
-          amount,
-          style: AppTypography.bodySmall.copyWith(
-            fontWeight: FontWeight.w900,
-            color: AppColors.primary.withValues(alpha: 0.5),
-            fontSize: 16,
+        const SizedBox(width: 10),
+        SizedBox(
+          width: 76,
+          child: Text(
+            amount,
+            maxLines: 1,
+            textAlign: TextAlign.right,
+            style: AppTypography.bodySmall.copyWith(
+              fontWeight: FontWeight.w900,
+              color: AppColors.primary.withValues(alpha: 0.5),
+              fontSize: 16,
+            ),
           ),
         ),
       ],
     );
   }
 
-  Widget _categoryDot(Color color, String label) {
-    return Row(
-      children: [
-        Container(
-          width: 8,
-          height: 8,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-        ),
-        const SizedBox(width: 4),
-        Text(
-          label,
-          style: AppTypography.caption.copyWith(
-            fontSize: 10,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ],
-    );
+  double _activityAmount(int index) {
+    final month = DateFormat('MMM yyyy').parseLoose(_matrixMonthLabel);
+    final day = index + 1;
+    return _repository.transactions
+        .where(
+          (transaction) =>
+              !transaction.isIncome &&
+              transaction.date.year == month.year &&
+              transaction.date.month == month.month &&
+              transaction.date.day == day,
+        )
+        .fold(0, (total, transaction) => total + transaction.amount);
+  }
+
+  double get _maxActivityAmount {
+    return List.generate(
+      28,
+      _activityAmount,
+    ).fold<double>(0, (max, value) => value > max ? value : max);
   }
 
   Widget _buildHeatmapSection() {
@@ -914,9 +935,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: List.generate(7, (dayIndex) {
                       final idx = weekIndex * 7 + dayIndex;
-                      final intensity = math.Random(
-                        idx + _matrixMonthLabel.hashCode,
-                      ).nextDouble();
+                      final maxAmount = _maxActivityAmount;
+                      final intensity = maxAmount == 0
+                          ? 0.0
+                          : _activityAmount(idx) / maxAmount;
                       final isSelected = _selectedActivityIndex == idx;
                       return GestureDetector(
                         onTap: () {
@@ -953,22 +975,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
       ],
     );
 
-    final detailWidget = _selectedActivityIndex != -1
-        ? Text(
-            'Day ${_selectedActivityIndex + 1}: Rs. ${(math.Random(_selectedActivityIndex + _matrixMonthLabel.hashCode).nextDouble() * 4000).toInt()}',
-            style: AppTypography.bodySmall.copyWith(
-              fontWeight: FontWeight.w800,
-              color: AppColors.primary,
-            ),
-          )
-        : Expanded(
-            child: Text(
-              'Tap a day for breakdown',
-              style: AppTypography.caption.copyWith(
-                fontStyle: FontStyle.italic,
-              ),
-            ),
-          );
+    final detailText = _selectedActivityIndex != -1
+        ? 'Day ${_selectedActivityIndex + 1}: Rs. ${NumberFormat('#,###').format(_activityAmount(_selectedActivityIndex))}'
+        : 'Tap a day for breakdown';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -976,10 +985,15 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              'Activity Matrix',
-              style: AppTypography.h3.copyWith(fontWeight: FontWeight.w800),
+            Expanded(
+              child: Text(
+                'Activity Matrix',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTypography.h3.copyWith(fontWeight: FontWeight.w800),
+              ),
             ),
+            const SizedBox(width: 12),
             GestureDetector(
               onTap: () => _showMonthPicker(context),
               child: Container(
@@ -1027,7 +1041,32 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
               const Divider(height: 32),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [detailWidget, const Spacer(), _heatmapLegend()],
+                children: [
+                  Expanded(
+                    child: Text(
+                      detailText,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style:
+                          (_selectedActivityIndex != -1
+                                  ? AppTypography.bodySmall
+                                  : AppTypography.caption)
+                              .copyWith(
+                                fontWeight: _selectedActivityIndex != -1
+                                    ? FontWeight.w800
+                                    : null,
+                                color: AppColors.primary.withValues(
+                                  alpha: _selectedActivityIndex != -1 ? 1 : 0.5,
+                                ),
+                                fontStyle: _selectedActivityIndex == -1
+                                    ? FontStyle.italic
+                                    : null,
+                              ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  _heatmapLegend(),
+                ],
               ),
             ],
           ),
@@ -1137,9 +1176,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(
-          0xFF1E1E20,
-        ).withValues(alpha: 0.95), // Premium translucent black
+        color: AppColors.insightSurface.withValues(alpha: 0.95),
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
@@ -1155,7 +1192,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [AppColors.accent, Color(0xFFD4AF37)],
+                colors: [AppColors.accent, AppColors.amberGold],
               ),
               borderRadius: BorderRadius.circular(16),
             ),
@@ -1255,7 +1292,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                   vertical: 32,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFBFBFB),
+                  color: AppColors.surface,
                   borderRadius: BorderRadius.circular(32),
                   boxShadow: [
                     BoxShadow(
@@ -1436,5 +1473,17 @@ class RadialBarPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+  bool shouldRepaint(covariant RadialBarPainter oldDelegate) {
+    if (oldDelegate.values.length != values.length ||
+        oldDelegate.colors.length != colors.length) {
+      return true;
+    }
+    for (var i = 0; i < values.length; i++) {
+      if (oldDelegate.values[i] != values[i]) return true;
+    }
+    for (var i = 0; i < colors.length; i++) {
+      if (oldDelegate.colors[i] != colors[i]) return true;
+    }
+    return false;
+  }
 }

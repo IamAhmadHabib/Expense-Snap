@@ -150,8 +150,8 @@ class IPhoneSkeleton extends StatelessWidget {
                             decoration: BoxDecoration(
                               gradient: const RadialGradient(
                                 colors: [
-                                  Color(0xFF1B2F45), // Deep lens color
-                                  Color(0xFF0D1821),
+                                  AppColors.surfaceDark,
+                                  AppColors.backgroundDark,
                                 ],
                               ),
                               shape: BoxShape.circle,

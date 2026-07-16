@@ -15,6 +15,13 @@ Responsibilities:
 - Support correction flow.
 - Return confirmed transaction data to [[Transactions]].
 
+Frontend readiness:
+
+- `ExpenseCaptureAdapter<VoiceCaptureInput>` exists.
+- `CaptureParseResult` wraps a `TransactionDraft`, confidence, warnings, and correction workflow.
+- `CaptureCorrection` can update amount, merchant, category, date, note, method, and income flag before save.
+- Current implementation is a local simulated parser; Gemini is not connected yet.
+
 Related:
 
 - [[Voice Tab]]

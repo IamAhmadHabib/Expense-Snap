@@ -1,12 +1,17 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../models/transaction.dart';
+import '../../models/transaction_draft.dart';
+import '../../repositories/repository_scope.dart';
+import '../../repositories/transaction_repository.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
-import '../../theme/app_spacing.dart';
+
+enum AddTransactionTab { manual, scan, voice }
 
 // ─────────────────────────────────────────────────────────────
 // Category model
@@ -41,7 +46,15 @@ final List<_Category> _categories = [
 // ─────────────────────────────────────────────────────────────
 class AddTransactionSheet extends StatefulWidget {
   final Transaction? transaction;
-  const AddTransactionSheet({super.key, this.transaction});
+  final AddTransactionTab? initialTab;
+  final TransactionRepository? repository;
+
+  const AddTransactionSheet({
+    super.key,
+    this.transaction,
+    this.initialTab,
+    this.repository,
+  });
 
   @override
   State<AddTransactionSheet> createState() => _AddTransactionSheetState();
@@ -50,11 +63,13 @@ class AddTransactionSheet extends StatefulWidget {
 class _AddTransactionSheetState extends State<AddTransactionSheet>
     with TickerProviderStateMixin {
   String _amount = '0';
-  int _activeTab = 0;
+  late int _activeTab;
   _Category _selectedCategory = _categories[0];
   String _selectedPayment = 'Cash';
   bool _isSaving = false;
   bool _showNumPad = false;
+  late TransactionRepository _repository;
+  bool _repositoryInitialized = false;
 
   DateTime _selectedDate = DateTime.now();
   TimeOfDay _selectedTime = TimeOfDay.now();
@@ -70,6 +85,12 @@ class _AddTransactionSheetState extends State<AddTransactionSheet>
   @override
   void initState() {
     super.initState();
+    _activeTab =
+        (widget.initialTab ??
+                (widget.transaction == null
+                    ? AddTransactionTab.voice
+                    : AddTransactionTab.manual))
+            .index;
     _pageController = PageController(initialPage: _activeTab);
 
     // Initialize from transaction if editing
@@ -101,6 +122,17 @@ class _AddTransactionSheetState extends State<AddTransactionSheet>
     super.dispose();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_repositoryInitialized) return;
+    _repository =
+        widget.repository ??
+        RepositoryScope.maybeOf(context)?.transactions ??
+        TransactionRepository.inMemory();
+    _repositoryInitialized = true;
+  }
+
   void _onTabTapped(int index) {
     if (_activeTab != index) {
       HapticFeedback.lightImpact();
@@ -114,6 +146,15 @@ class _AddTransactionSheetState extends State<AddTransactionSheet>
         curve: Curves.easeOutCubic,
       );
     }
+  }
+
+  void _closeNumPad() {
+    final targetTab = _activeTab;
+    setState(() => _showNumPad = false);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_pageController.hasClients) return;
+      _pageController.jumpToPage(targetTab);
+    });
   }
 
   void _onKeyPress(String key) {
@@ -138,10 +179,35 @@ class _AddTransactionSheetState extends State<AddTransactionSheet>
   }
 
   Future<void> _handleSave() async {
+    final selectedDateTime = DateTime(
+      _selectedDate.year,
+      _selectedDate.month,
+      _selectedDate.day,
+      _selectedTime.hour,
+      _selectedTime.minute,
+    );
+    await _saveDraft(
+      TransactionDraft(
+        merchant: _descriptionController.text,
+        category: _selectedCategory.name,
+        amount: double.tryParse(_amount) ?? 0,
+        date: selectedDateTime,
+        note: _noteController.text,
+        method: _selectedPayment,
+        source: TransactionSource.manual,
+      ),
+    );
+  }
+
+  Future<void> _saveDraft(TransactionDraft draft) async {
+    if (_isSaving || draft.amount <= 0) return;
     HapticFeedback.mediumImpact();
     setState(() => _isSaving = true);
-    await Future.delayed(const Duration(milliseconds: 1400));
-    if (mounted) Navigator.pop(context, true);
+    final saved = await _repository.saveDraft(
+      draft,
+      transactionId: widget.transaction?.id,
+    );
+    if (mounted) Navigator.pop(context, saved);
   }
 
   // ── Category Picker ──────────────────────────────────────
@@ -178,8 +244,8 @@ class _AddTransactionSheetState extends State<AddTransactionSheet>
           data: Theme.of(context).copyWith(
             colorScheme: ColorScheme.light(
               primary: AppColors.primary,
-              onPrimary: Colors.white,
-              surface: const Color(0xFFFAF9F6),
+              onPrimary: AppColors.surface,
+              surface: AppColors.warmSurface,
               onSurface: AppColors.primary,
             ),
             textButtonTheme: TextButtonThemeData(
@@ -194,7 +260,7 @@ class _AddTransactionSheetState extends State<AddTransactionSheet>
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.all(Radius.circular(32)),
               ),
-              backgroundColor: Color(0xFFFAF9F6),
+              backgroundColor: AppColors.warmSurface,
             ),
           ),
           child: child!,
@@ -215,13 +281,13 @@ class _AddTransactionSheetState extends State<AddTransactionSheet>
           data: Theme.of(context).copyWith(
             colorScheme: ColorScheme.light(
               primary: AppColors.primary,
-              onPrimary: Colors.white,
-              surface: const Color(0xFFFAF9F6),
+              onPrimary: AppColors.surface,
+              surface: AppColors.warmSurface,
               onSurface: AppColors.primary,
               secondary: AppColors.accent,
             ),
             timePickerTheme: TimePickerThemeData(
-              backgroundColor: const Color(0xFFFAF9F6),
+              backgroundColor: AppColors.warmSurface,
               hourMinuteShape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
@@ -279,8 +345,9 @@ class _AddTransactionSheetState extends State<AddTransactionSheet>
     final now = DateTime.now();
     if (_selectedDate.year == now.year &&
         _selectedDate.month == now.month &&
-        _selectedDate.day == now.day)
+        _selectedDate.day == now.day) {
       return 'Today';
+    }
     return DateFormat('MMM d, yyyy').format(_selectedDate);
   }
 
@@ -303,7 +370,7 @@ class _AddTransactionSheetState extends State<AddTransactionSheet>
       padding: EdgeInsets.only(bottom: keyboardPadding),
       height: MediaQuery.of(context).size.height * 0.85,
       decoration: const BoxDecoration(
-        color: Color(0xFFFAF9F6),
+        color: AppColors.warmSurface,
         borderRadius: BorderRadius.vertical(top: Radius.circular(40)),
       ),
       child: Column(
@@ -330,9 +397,16 @@ class _AddTransactionSheetState extends State<AddTransactionSheet>
                     color: AppColors.primary,
                   ),
                 ),
-                Text(
-                  'Add Transaction',
-                  style: AppTypography.h3.copyWith(fontWeight: FontWeight.w800),
+                Expanded(
+                  child: Text(
+                    'Add Transaction',
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.h3.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
                 ),
                 const SizedBox(width: 48),
               ],
@@ -358,8 +432,9 @@ class _AddTransactionSheetState extends State<AddTransactionSheet>
               switchOutCurve: Curves.easeInCubic,
               child: _showNumPad
                   ? _buildInputView()
-                  : PageView(
+                  : PageView.builder(
                       controller: _pageController,
+                      itemCount: 3,
                       onPageChanged: (index) {
                         if (!_showNumPad) {
                           FocusScope.of(
@@ -369,11 +444,14 @@ class _AddTransactionSheetState extends State<AddTransactionSheet>
                           HapticFeedback.selectionClick();
                         }
                       },
-                      children: [
-                        _buildFormView(keyboardPadding > 0),
-                        const _ScanTabView(key: ValueKey('scan_view')),
-                        const _VoiceTabView(key: ValueKey('voice_view')),
-                      ],
+                      itemBuilder: (context, index) {
+                        return RepaintBoundary(
+                          child: TickerMode(
+                            enabled: _activeTab == index,
+                            child: _buildCapturePage(index, keyboardPadding),
+                          ),
+                        );
+                      },
                     ),
             ),
           ),
@@ -382,14 +460,41 @@ class _AddTransactionSheetState extends State<AddTransactionSheet>
     );
   }
 
+  Widget _buildCapturePage(int index, double keyboardPadding) {
+    switch (index) {
+      case 0:
+        return _buildManualTabView(keyboardPadding > 0);
+      case 1:
+        return _ScanTabView(
+          key: const ValueKey('scan_view'),
+          onSave: _saveDraft,
+        );
+      case 2:
+      default:
+        return _VoiceTabView(
+          key: const ValueKey('voice_view'),
+          onSave: _saveDraft,
+        );
+    }
+  }
+
   // ─────────────────────────────── FORM VIEW ───────────────────────────────
-  Widget _buildFormView(bool isKeyboardActive) {
+  Widget _buildManualTabView(bool isKeyboardActive) {
+    return Column(
+      children: [
+        Expanded(child: _buildFormView()),
+        Padding(
+          padding: EdgeInsets.fromLTRB(24, 12, 24, isKeyboardActive ? 12 : 20),
+          child: _buildSaveButton(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFormView() {
     return SingleChildScrollView(
       key: const ValueKey('form_view'),
-      // Only allow scrolling if the keyboard is pushing content
-      physics: isKeyboardActive
-          ? const BouncingScrollPhysics()
-          : const NeverScrollableScrollPhysics(),
+      physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
         children: [
@@ -427,12 +532,7 @@ class _AddTransactionSheetState extends State<AddTransactionSheet>
               ),
             ),
           ),
-          // When keyboard is up, we don't need a massive spacer
-          isKeyboardActive
-              ? const SizedBox(height: 32)
-              : const SizedBox(height: 60),
-          _buildSaveButton(),
-          const SizedBox(height: 32),
+          const SizedBox(height: 16),
         ],
       ),
     );
@@ -443,47 +543,57 @@ class _AddTransactionSheetState extends State<AddTransactionSheet>
     return Padding(
       key: const ValueKey('input_view'),
       padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Column(
-        children: [
-          const SizedBox(height: 16),
-          _buildHeroAmount(),
-          const SizedBox(height: 48),
-          _buildNumberPad(),
-          const Spacer(),
-          GestureDetector(
-            onTap: () {
-              HapticFeedback.mediumImpact();
-              setState(() => _showNumPad = false);
-            },
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 24),
-              decoration: BoxDecoration(
-                color: AppColors.primary,
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.2),
-                    blurRadius: 15,
-                    offset: const Offset(0, 8),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: Column(
+                children: [
+                  const SizedBox(height: 8),
+                  _buildHeroAmount(),
+                  const SizedBox(height: 28),
+                  _buildNumberPad(),
+                  const SizedBox(height: 18),
+                  GestureDetector(
+                    onTap: () {
+                      HapticFeedback.mediumImpact();
+                      _closeNumPad();
+                    },
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 20),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary.withValues(alpha: 0.2),
+                            blurRadius: 15,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Confirm Amount',
+                          style: AppTypography.button.copyWith(
+                            color: AppColors.surface,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
+                  const SizedBox(height: 16),
                 ],
               ),
-              child: Center(
-                child: Text(
-                  'Confirm Amount',
-                  style: AppTypography.button.copyWith(
-                    color: AppColors.surface,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.8,
-                  ),
-                ),
-              ),
             ),
-          ),
-          const SizedBox(height: 48),
-        ],
+          );
+        },
       ),
     );
   }
@@ -493,9 +603,9 @@ class _AddTransactionSheetState extends State<AddTransactionSheet>
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE8DDD0), width: 1),
+        border: Border.all(color: AppColors.warmBorder, width: 1),
       ),
       child: Stack(
         children: [
@@ -1155,7 +1265,9 @@ enum _VoiceState { idle, listening, processing, success, error, correcting }
 // Voice Tab View — "The Evolving Orb"
 // ─────────────────────────────────────────────────────────────
 class _VoiceTabView extends StatefulWidget {
-  const _VoiceTabView({super.key});
+  final Future<void> Function(TransactionDraft draft) onSave;
+
+  const _VoiceTabView({super.key, required this.onSave});
 
   @override
   State<_VoiceTabView> createState() => _VoiceTabViewState();
@@ -1166,8 +1278,8 @@ class _VoiceTabViewState extends State<_VoiceTabView>
   _VoiceState _state = _VoiceState.idle;
   int _hintIndex = 0;
   bool _hasPermission = false;
+  Timer? _hintTimer;
 
-  late AnimationController _glowController;
   late AnimationController _micBreathingController;
   late AnimationController _processingPulseController;
   late AnimationController _waveController;
@@ -1175,12 +1287,12 @@ class _VoiceTabViewState extends State<_VoiceTabView>
   late AnimationController _cardAssemblyController;
 
   // Assembly steps
-  bool _step1_card = false;
-  bool _step2_amount = false;
-  bool _step3_category = false;
-  bool _step4_note = false;
-  bool _step5_date = false;
-  bool _step6_complete = false;
+  bool _step1Card = false;
+  bool _step2Amount = false;
+  bool _step3Category = false;
+  bool _step4Note = false;
+  bool _step5Date = false;
+  bool _step6Complete = false;
 
   final List<String> _hints = [
     'Maine 300 rupay burger pe kharch kiye',
@@ -1216,19 +1328,13 @@ class _VoiceTabViewState extends State<_VoiceTabView>
       duration: const Duration(milliseconds: 1200),
     )..repeat();
 
-    _glowController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 2000),
-    )..repeat(reverse: true);
-
     _startHintCycling();
   }
 
   void _startHintCycling() {
-    Future.delayed(const Duration(seconds: 4), () {
+    _hintTimer = Timer.periodic(const Duration(seconds: 4), (_) {
       if (!mounted) return;
       setState(() => _hintIndex = (_hintIndex + 1) % _hints.length);
-      _startHintCycling();
     });
   }
 
@@ -1243,7 +1349,7 @@ class _VoiceTabViewState extends State<_VoiceTabView>
 
   @override
   void dispose() {
-    _glowController.dispose();
+    _hintTimer?.cancel();
     _micBreathingController.dispose();
     _processingPulseController.dispose();
     _waveController.dispose();
@@ -1274,41 +1380,41 @@ class _VoiceTabViewState extends State<_VoiceTabView>
   void _startProcessing() {
     setState(() {
       _state = _VoiceState.processing;
-      _step1_card = _step2_amount = _step3_category = _step4_note =
-          _step5_date = _step6_complete = false;
+      _step1Card = _step2Amount = _step3Category = _step4Note = _step5Date =
+          _step6Complete = false;
     });
 
     _cardAssemblyController.reset();
     _cardAssemblyController.forward();
 
     // Staggered sequence strictly per spec
-    Future.delayed(Duration.zero, () => setState(() => _step1_card = true));
+    Future.delayed(Duration.zero, () => setState(() => _step1Card = true));
 
     // Step 2 — Amount row (0ms – 400ms)
     Future.delayed(const Duration(milliseconds: 50), () {
       if (!mounted) return;
-      setState(() => _step2_amount = true);
+      setState(() => _step2Amount = true);
       _triggerPulseGlow();
     });
 
     // Step 3 — Category row (300ms – 600ms)
     Future.delayed(const Duration(milliseconds: 300), () {
       if (!mounted) return;
-      setState(() => _step3_category = true);
+      setState(() => _step3Category = true);
       _triggerPulseGlow();
     });
 
     // Step 4 — Note row (600ms – 800ms)
     Future.delayed(const Duration(milliseconds: 600), () {
       if (!mounted) return;
-      setState(() => _step4_note = true);
+      setState(() => _step4Note = true);
       _triggerPulseGlow();
     });
 
     // Step 5 — Date row (900ms – 1000ms)
     Future.delayed(const Duration(milliseconds: 900), () {
       if (!mounted) return;
-      setState(() => _step5_date = true);
+      setState(() => _step5Date = true);
       _triggerPulseGlow();
     });
 
@@ -1316,7 +1422,7 @@ class _VoiceTabViewState extends State<_VoiceTabView>
     Future.delayed(const Duration(milliseconds: 1200), () {
       if (!mounted) return;
       HapticFeedback.mediumImpact();
-      setState(() => _step6_complete = true);
+      setState(() => _step6Complete = true);
 
       // Slide up transition to result sheet
       Future.delayed(const Duration(milliseconds: 800), () {
@@ -1399,9 +1505,6 @@ class _VoiceTabViewState extends State<_VoiceTabView>
   @override
   Widget build(BuildContext context) {
     if (!_hasPermission) return _buildPermissionView();
-
-    final bool showOrb =
-        _state != _VoiceState.success && _state != _VoiceState.correcting;
 
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 500),
@@ -1535,10 +1638,10 @@ class _VoiceTabViewState extends State<_VoiceTabView>
   Widget _buildSoftGlowMic() {
     final bool isListening = _state == _VoiceState.listening;
     final bool isProcessing = _state == _VoiceState.processing;
-    final Color ringColor = const Color(0xFF1A1612);
+    final Color ringColor = AppColors.warmCharcoal;
     final Color micColor = isListening || isProcessing
-        ? const Color(0xFFC9973A)
-        : const Color(0xFF1A1612);
+        ? AppColors.amberGold
+        : AppColors.warmCharcoal;
 
     return GestureDetector(
       onTap: isProcessing ? null : _toggleListening,
@@ -1642,87 +1745,6 @@ class _VoiceTabViewState extends State<_VoiceTabView>
   }
 
   // ── The Orb ────────────────────────────────────────────────
-  Widget _buildOrb() {
-    final bool isActive =
-        _state == _VoiceState.listening || _state == _VoiceState.processing;
-    final Color orbColor = isActive ? AppColors.accent : AppColors.primary;
-
-    return GestureDetector(
-      onTap: _toggleListening,
-      child: AnimatedBuilder(
-        animation: _glowController,
-        builder: (context, child) {
-          final double glowPulse = _glowController.value;
-          final double glowSize = isActive
-              ? 20 + (glowPulse * 25)
-              : 10 + (glowPulse * 8);
-          final double glowOpacity = isActive
-              ? 0.25 + (glowPulse * 0.15)
-              : 0.08 + (glowPulse * 0.04);
-
-          return Container(
-            width: 180,
-            height: 180,
-            alignment: Alignment.center,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                // Ambient Glow
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 400),
-                  width: 120,
-                  height: 120,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: orbColor.withValues(alpha: glowOpacity),
-                        blurRadius: glowSize * 2,
-                        spreadRadius: glowSize,
-                      ),
-                    ],
-                  ),
-                ),
-
-                // The Orb itself
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 400),
-                  curve: Curves.easeOutCubic,
-                  width: 120,
-                  height: 120,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: RadialGradient(
-                      colors: [
-                        orbColor,
-                        Color.lerp(orbColor, AppColors.primary, 0.15)!,
-                      ],
-                      center: const Alignment(-0.2, -0.2),
-                      radius: 0.9,
-                    ),
-                  ),
-                  child: Center(
-                    child: _state == _VoiceState.processing
-                        ? _buildProcessingDots()
-                        : AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 250),
-                            child: Icon(
-                              PhosphorIcons.microphone(PhosphorIconsStyle.fill),
-                              key: ValueKey(_state),
-                              color: AppColors.surface,
-                              size: 40,
-                            ),
-                          ),
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
-
   // ── Processing Dots (typing-indicator style) ──────────────
   Widget _buildProcessingDots() {
     return AnimatedBuilder(
@@ -1755,6 +1777,7 @@ class _VoiceTabViewState extends State<_VoiceTabView>
   }
 
   // ── Status Text ───────────────────────────────────────────
+  // ignore: unused_element
   Widget _buildStatusText() {
     String text;
     switch (_state) {
@@ -1853,20 +1876,20 @@ class _VoiceTabViewState extends State<_VoiceTabView>
 
         // The Assembly Card
         AnimatedOpacity(
-          opacity: _step1_card ? 1.0 : 0.0,
+          opacity: _step1Card ? 1.0 : 0.0,
           duration: const Duration(milliseconds: 200),
           child: Transform.scale(
-            scale: _step1_card ? 1.0 : 0.95,
+            scale: _step1Card ? 1.0 : 0.95,
             child: Container(
               width: double.infinity,
               margin: const EdgeInsets.symmetric(horizontal: 24),
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: const Color(0xFFFAF9F6),
+                color: AppColors.warmSurface,
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
+                    color: AppColors.primary.withValues(alpha: 0.05),
                     blurRadius: 30,
                     offset: const Offset(0, 10),
                   ),
@@ -1879,21 +1902,21 @@ class _VoiceTabViewState extends State<_VoiceTabView>
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      _step2_amount
+                      _step2Amount
                           ? Row(
                               children: [
                                 Text(
                                   'Rs. ',
                                   style: AppTypography.h2.copyWith(
                                     fontWeight: FontWeight.w900,
-                                    color: const Color(0xFF1A1612),
+                                    color: AppColors.warmCharcoal,
                                   ),
                                 ),
                                 _TypingText(
                                   text: '300',
                                   style: AppTypography.h2.copyWith(
                                     fontWeight: FontWeight.w900,
-                                    color: const Color(0xFF1A1612),
+                                    color: AppColors.warmCharcoal,
                                   ),
                                 ),
                               ],
@@ -1901,15 +1924,15 @@ class _VoiceTabViewState extends State<_VoiceTabView>
                           : Text(
                               'Rs. ___',
                               style: AppTypography.h2.copyWith(
-                                color: const Color(
-                                  0xFF1A1612,
-                                ).withValues(alpha: 0.1),
+                                color: AppColors.warmCharcoal.withValues(
+                                  alpha: 0.1,
+                                ),
                               ),
                             ),
-                      if (_step6_complete)
+                      if (_step6Complete)
                         const Icon(
                           Icons.check_circle_rounded,
-                          color: Color(0xFF1A1612),
+                          color: AppColors.warmCharcoal,
                           size: 22,
                         ),
                     ],
@@ -1917,14 +1940,14 @@ class _VoiceTabViewState extends State<_VoiceTabView>
                   const Divider(
                     height: 32,
                     thickness: 1,
-                    color: Color(0xFFEFEDE8),
+                    color: AppColors.surfaceVariant,
                   ),
 
                   // Row 2: Category
                   _assemblyRow(
                     PhosphorIcons.hamburger(PhosphorIconsStyle.fill),
                     'Food & Dining',
-                    _step3_category,
+                    _step3Category,
                     true,
                   ),
                   const SizedBox(height: 14),
@@ -1933,7 +1956,7 @@ class _VoiceTabViewState extends State<_VoiceTabView>
                   _assemblyRow(
                     PhosphorIcons.note(PhosphorIconsStyle.fill),
                     'Burger',
-                    _step4_note,
+                    _step4Note,
                     false,
                   ),
                   const SizedBox(height: 14),
@@ -1942,7 +1965,7 @@ class _VoiceTabViewState extends State<_VoiceTabView>
                   _assemblyRow(
                     PhosphorIcons.calendar(PhosphorIconsStyle.fill),
                     'Today, 2:45 PM',
-                    _step5_date,
+                    _step5Date,
                     false,
                   ),
                 ],
@@ -2209,10 +2232,17 @@ class _VoiceTabViewState extends State<_VoiceTabView>
               Expanded(
                 flex: 2,
                 child: GestureDetector(
-                  onTap: () {
-                    HapticFeedback.mediumImpact();
-                    Navigator.pop(context);
-                  },
+                  onTap: () => widget.onSave(
+                    TransactionDraft(
+                      merchant: 'Burger',
+                      category: 'Dining',
+                      amount: 300,
+                      date: DateTime.now(),
+                      note: 'Burger',
+                      method: 'Cash',
+                      source: TransactionSource.voice,
+                    ),
+                  ),
                   child: Container(
                     height: 56,
                     decoration: BoxDecoration(
@@ -2354,7 +2384,9 @@ enum _ScanState { idle, detecting, processing, success, error }
 // Scan Tab View
 // ─────────────────────────────────────────────────────────────
 class _ScanTabView extends StatefulWidget {
-  const _ScanTabView({super.key});
+  final Future<void> Function(TransactionDraft draft) onSave;
+
+  const _ScanTabView({super.key, required this.onSave});
 
   @override
   State<_ScanTabView> createState() => _ScanTabViewState();
@@ -2479,14 +2511,16 @@ class _ScanTabViewState extends State<_ScanTabView>
   }
 
   void _showResultsSheet() {
-    showModalBottomSheet<String>(
+    showModalBottomSheet<Object>(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (_) => const _ScanResultsSheet(),
+      builder: (context) => const _ScanResultsSheet(),
     ).then((result) {
       if (mounted) {
-        if (result == 'edit') {
+        if (result is TransactionDraft) {
+          widget.onSave(result);
+        } else if (result == 'edit') {
           // Find the parent AddTransactionSheet state to switch tabs
           final parent = context
               .findAncestorStateOfType<_AddTransactionSheetState>();
@@ -2602,14 +2636,14 @@ class _ScanTabViewState extends State<_ScanTabView>
         width: double.infinity,
         height: viewfinderH,
         decoration: BoxDecoration(
-          color: const Color(0xFF0C0C0C),
+          color: AppColors.cameraSurface,
           borderRadius: BorderRadius.circular(24),
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(24),
           child: Stack(
             children: [
-              Container(color: const Color(0xFF0A0A0A)),
+              Container(color: AppColors.cameraBlack),
 
               // Vignette overlay
               Positioned.fill(
@@ -2620,7 +2654,7 @@ class _ScanTabViewState extends State<_ScanTabView>
                       radius: 1.0,
                       colors: [
                         Colors.transparent,
-                        Colors.black.withValues(alpha: 0.35),
+                        AppColors.primary.withValues(alpha: 0.35),
                       ],
                     ),
                   ),
@@ -2631,7 +2665,7 @@ class _ScanTabViewState extends State<_ScanTabView>
               if (_state == _ScanState.idle || _state == _ScanState.detecting)
                 AnimatedBuilder(
                   animation: _beamY,
-                  builder: (_, __) => Positioned(
+                  builder: (context, child) => Positioned(
                     top: _beamY.value * (viewfinderH - 2),
                     left: 28,
                     right: 28,
@@ -2641,17 +2675,15 @@ class _ScanTabViewState extends State<_ScanTabView>
                         gradient: LinearGradient(
                           colors: [
                             Colors.transparent,
-                            const Color(0xFFC9973A).withValues(alpha: 0.7),
-                            const Color(0xFFC9973A).withValues(alpha: 0.7),
+                            AppColors.amberGold.withValues(alpha: 0.7),
+                            AppColors.amberGold.withValues(alpha: 0.7),
                             Colors.transparent,
                           ],
                           stops: const [0.0, 0.25, 0.75, 1.0],
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(
-                              0xFFC9973A,
-                            ).withValues(alpha: 0.45),
+                            color: AppColors.amberGold.withValues(alpha: 0.45),
                             blurRadius: 10,
                           ),
                         ],
@@ -2664,13 +2696,13 @@ class _ScanTabViewState extends State<_ScanTabView>
               Positioned.fill(
                 child: AnimatedBuilder(
                   animation: _bracketPulse,
-                  builder: (_, __) {
+                  builder: (context, child) {
                     final double scale = _state == _ScanState.detecting
                         ? 1.15
                         : _bracketPulse.value;
                     final Color c = _state == _ScanState.detecting
-                        ? const Color(0xFFC9973A)
-                        : const Color(0xFFC9973A).withValues(alpha: 0.85);
+                        ? AppColors.amberGold
+                        : AppColors.amberGold.withValues(alpha: 0.85);
                     return Transform.scale(
                       scale: scale,
                       child: _CornerBrackets(color: c),
@@ -2685,8 +2717,9 @@ class _ScanTabViewState extends State<_ScanTabView>
                   tween: Tween(begin: 0.8, end: 0.0),
                   duration: const Duration(milliseconds: 400),
                   curve: Curves.easeOut,
-                  builder: (_, v, __) =>
-                      Container(color: Colors.white.withValues(alpha: v)),
+                  builder: (context, value, child) => Container(
+                    color: AppColors.surface.withValues(alpha: value),
+                  ),
                 ),
 
               // Processing overlay
@@ -2708,7 +2741,7 @@ class _ScanTabViewState extends State<_ScanTabView>
 
   Widget _buildProcessingOverlay() {
     return Container(
-      color: const Color(0xFF0A0A0A).withValues(alpha: 0.72),
+      color: AppColors.cameraBlack.withValues(alpha: 0.72),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -2716,7 +2749,7 @@ class _ScanTabViewState extends State<_ScanTabView>
             width: 34,
             height: 34,
             child: CircularProgressIndicator(
-              color: Color(0xFFC9973A),
+              color: AppColors.amberGold,
               strokeWidth: 2.2,
             ),
           ),
@@ -2724,7 +2757,7 @@ class _ScanTabViewState extends State<_ScanTabView>
           Text(
             'Reading receipt...',
             style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.9),
+              color: AppColors.surface.withValues(alpha: 0.9),
               fontSize: 14,
               fontWeight: FontWeight.w600,
               letterSpacing: 0.2,
@@ -2737,13 +2770,13 @@ class _ScanTabViewState extends State<_ScanTabView>
               tween: Tween(begin: 0.0, end: 1.0),
               duration: const Duration(milliseconds: 1100),
               curve: Curves.easeOutCubic,
-              builder: (_, v, __) => ClipRRect(
+              builder: (context, value, child) => ClipRRect(
                 borderRadius: BorderRadius.circular(8),
                 child: LinearProgressIndicator(
-                  value: v,
-                  backgroundColor: Colors.white.withValues(alpha: 0.15),
+                  value: value,
+                  backgroundColor: AppColors.surface.withValues(alpha: 0.15),
                   valueColor: const AlwaysStoppedAnimation<Color>(
-                    Color(0xFFC9973A),
+                    AppColors.amberGold,
                   ),
                   minHeight: 3,
                 ),
@@ -2892,22 +2925,16 @@ class _ScanTabViewState extends State<_ScanTabView>
 // ─────────────────────────────────────────────────────────────
 class _CornerBrackets extends StatelessWidget {
   final Color color;
-  final double bracketSize;
-  final double thickness;
 
-  const _CornerBrackets({
-    required this.color,
-    this.bracketSize = 28,
-    this.thickness = 3,
-  });
+  const _CornerBrackets({required this.color});
 
   @override
   Widget build(BuildContext context) {
     return CustomPaint(
       painter: _CornerBracketsPainter(
         color: color,
-        bracketSize: bracketSize,
-        thickness: thickness,
+        bracketSize: 28,
+        thickness: 3,
       ),
     );
   }
@@ -2967,7 +2994,7 @@ class _CornerBracketsPainter extends CustomPainter {
 // Scan Results Sheet
 // ─────────────────────────────────────────────────────────────
 class _ScanResultsSheet extends StatefulWidget {
-  const _ScanResultsSheet({super.key});
+  const _ScanResultsSheet();
 
   @override
   State<_ScanResultsSheet> createState() => _ScanResultsSheetState();
@@ -3158,8 +3185,27 @@ class _ScanResultsSheetState extends State<_ScanResultsSheet> {
                       key: const ValueKey('save_btn'),
                       onTap: () {
                         HapticFeedback.mediumImpact();
-                        Navigator.pop(context);
-                        Navigator.pop(context, true);
+                        final amount =
+                            double.tryParse(
+                              _totalCtrl.text.replaceAll(
+                                RegExp(r'[^0-9.]'),
+                                '',
+                              ),
+                            ) ??
+                            0;
+                        Navigator.pop(
+                          context,
+                          TransactionDraft(
+                            merchant: _merchantCtrl.text,
+                            category: 'Dining',
+                            amount: amount,
+                            date: DateTime.now(),
+                            note:
+                                '${_item1NameCtrl.text}, ${_item2NameCtrl.text}',
+                            method: 'Card',
+                            source: TransactionSource.scan,
+                          ),
+                        );
                       },
                       child: Container(
                         width: double.infinity,

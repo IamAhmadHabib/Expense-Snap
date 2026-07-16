@@ -1,6 +1,6 @@
 ---
 type: screen
-status: ui-built-mock-data
+status: local-data-connected
 tags: [screen, analytics]
 ---
 
@@ -8,13 +8,22 @@ tags: [screen, analytics]
 
 Purpose: turn raw spending into insight.
 
-Confirmed live-code gaps:
+Current live-code behavior:
 
-- Line, category, active-stat, heatmap, and insight data are mock or deterministically random local values.
+- Main trend chart, total expenditure, category distribution, and activity matrix read from the shared local transaction repository.
+- Average Spending is now displayed as average per real expense in the selected period, not average per chart bucket.
+- Category distribution uses normalized groups, so Dining/Food/Food & Dining roll up under Food.
+- Category legend is stacked under the radial chart to avoid clipping labels on mobile widths.
+- Main chart, distribution, heatmap, and insight sections are wrapped in repaint isolation.
+- `RadialBarPainter.shouldRepaint` compares values/colors instead of repainting unconditionally.
+
+Remaining gaps:
+
+- Active-stat and insight copy still include placeholder/simple derived values.
 - The detailed breakdown overlay exists but has no code path that opens it.
 - Period and activity selections reset when the Dashboard shell rebuilds this tab.
 
-All derived data should come from [[Transactions]] through shared selectors/aggregation logic.
+All remaining derived analytics should come from [[Transactions]] through shared selectors/aggregation logic.
 
 Related:
 

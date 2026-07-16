@@ -166,8 +166,8 @@ class _AuthScreenState extends State<AuthScreen>
                           width: 24,
                         ),
                         label: 'Continue with Google',
-                        customBgColor: Colors.black,
-                        customTextColor: Colors.white,
+                        customBgColor: AppColors.primary,
+                        customTextColor: AppColors.surface,
                       ),
                       const SizedBox(height: AppSpacing.md),
                       _buildSocialButton(
@@ -181,8 +181,8 @@ class _AuthScreenState extends State<AuthScreen>
                         },
                         icon: Icons.apple_rounded,
                         label: 'Continue with Apple',
-                        customBgColor: Colors.black,
-                        customTextColor: Colors.white,
+                        customBgColor: AppColors.primary,
+                        customTextColor: AppColors.surface,
                       ),
                       const SizedBox(height: AppSpacing.md),
                       _buildSocialButton(
@@ -266,7 +266,9 @@ class _AuthScreenState extends State<AuthScreen>
       decoration: BoxDecoration(
         color: backgroundColor,
         borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-        border: isOutlined ? Border.all(color: Colors.black, width: 1.5) : null,
+        border: isOutlined
+            ? Border.all(color: AppColors.primary, width: 1.5)
+            : null,
       ),
       child: Material(
         color: Colors.transparent,

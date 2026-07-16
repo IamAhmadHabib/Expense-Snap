@@ -1,6 +1,6 @@
 {
 	"nodes":[
-		{"id":"home","type":"file","file":"00_Start_Here/Kharcha Home.md","x":0,"y":0,"width":300,"height":160},
+		{"id":"home","type":"file","file":"00_Start_Here/Kharcha Home.md","x":0,"y":0,"width":260,"height":180},
 		{"id":"product","type":"file","file":"01_Product/Product Vision.md","x":-520,"y":-260,"width":260,"height":100},
 		{"id":"architecture","type":"file","file":"02_Architecture/Architecture Overview.md","x":0,"y":-300,"width":280,"height":240},
 		{"id":"design","type":"file","file":"03_Design/Design System.md","x":520,"y":-260,"width":260,"height":100},
@@ -15,7 +15,7 @@
 		{"id":"history","type":"file","file":"04_Screens/History.md","x":-850,"y":280,"width":240,"height":90},
 		{"id":"analytics","type":"file","file":"04_Screens/Analytics.md","x":-850,"y":440,"width":240,"height":90},
 		{"id":"colors","type":"file","file":"03_Design/Color Tokens.md","x":850,"y":-360,"width":240,"height":90},
-		{"id":"debt","type":"file","file":"03_Design/Design Debt.md","x":850,"y":-200,"width":240,"height":90}
+		{"id":"debt","type":"file","file":"03_Design/Design Debt.md","x":850,"y":-200,"width":240,"height":380}
 	],
 	"edges":[
 		{"id":"e1","fromNode":"home","fromSide":"top","toNode":"architecture","toSide":"bottom"},

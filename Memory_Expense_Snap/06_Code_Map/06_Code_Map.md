@@ -19,6 +19,7 @@ Code map index for Kharcha.
 - [[Onboarding Code]]
 - [[Auth Code]]
 - [[Personalization Code]]
+- [[Notifications Code]]
 
 Related:
 

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'dart:math' as Math;
+import 'dart:math' as math;
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import '../../theme/app_spacing.dart';
@@ -385,7 +385,7 @@ class _CircularRevealPainter extends CustomPainter {
     if (fraction <= 0) return;
 
     final paint = Paint()..color = color;
-    double maxRadius = Math.sqrt(
+    double maxRadius = math.sqrt(
       size.width * size.width + size.height * size.height,
     );
     canvas.drawCircle(center, maxRadius * fraction, paint);

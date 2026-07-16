@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'dart:math' as math;
 import 'package:kharcha/theme/app_colors.dart';
-import 'package:kharcha/theme/app_spacing.dart';
 import 'package:kharcha/theme/app_typography.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:kharcha/features/transactions/add_transaction_sheet.dart';
 import 'package:kharcha/models/transaction.dart';
+import 'package:kharcha/repositories/repository_scope.dart';
+import 'package:kharcha/repositories/transaction_repository.dart';
+import 'package:kharcha/utils/category_utils.dart';
 
 class HistoryScreen extends StatefulWidget {
   final VoidCallback? onBack;
-  const HistoryScreen({super.key, this.onBack});
+  final TransactionRepository? repository;
+  const HistoryScreen({super.key, this.onBack, this.repository});
 
   @override
   State<HistoryScreen> createState() => _HistoryScreenState();
@@ -38,9 +40,17 @@ class _HistoryScreenState extends State<HistoryScreen>
     'Health',
     'Travel',
   ];
+  static const Set<String> _categoryFilterOptions = {
+    'Food',
+    'Transport',
+    'Shopping',
+    'Health',
+    'Travel',
+  };
 
-  // Mock Data
-  late List<Transaction> _allTransactions;
+  late TransactionRepository _repository;
+  bool _repositoryInitialized = false;
+  List<Transaction> get _allTransactions => _repository.transactions;
 
   @override
   void initState() {
@@ -53,86 +63,29 @@ class _HistoryScreenState extends State<HistoryScreen>
       parent: _searchController,
       curve: Curves.easeOutCubic,
     );
-
-    _allTransactions = _generateMockTransactions();
   }
 
-  List<Transaction> _generateMockTransactions() {
-    final now = DateTime.now();
-    return [
-      Transaction(
-        id: '1',
-        merchant: 'Starbucks',
-        category: 'Food',
-        amount: 450,
-        date: now,
-        note: 'Caramel Latte',
-        method: 'Card',
-        source: TransactionSource.voice,
-      ),
-      Transaction(
-        id: '2',
-        merchant: 'Uber',
-        category: 'Transport',
-        amount: 850,
-        date: now,
-        note: 'Office to Home',
-        method: 'Wallet',
-        source: TransactionSource.manual,
-      ),
-      Transaction(
-        id: '3',
-        merchant: 'Salary Pulse',
-        category: 'Income',
-        amount: 45000,
-        date: now.subtract(const Duration(days: 1)),
-        isIncome: true,
-        method: 'Bank Transfer',
-        source: TransactionSource.manual,
-      ),
-      Transaction(
-        id: '4',
-        merchant: 'Grocery Store',
-        category: 'Food',
-        amount: 1200,
-        date: now.subtract(const Duration(days: 1)),
-        note: 'Weekly essentials',
-        method: 'Cash',
-        source: TransactionSource.scan,
-      ),
-      Transaction(
-        id: '5',
-        merchant: 'Gas Station',
-        category: 'Transport',
-        amount: 3500,
-        date: now.subtract(const Duration(days: 3)),
-        method: 'Card',
-        source: TransactionSource.manual,
-      ),
-      Transaction(
-        id: '6',
-        merchant: 'H&M',
-        category: 'Shopping',
-        amount: 4200,
-        date: now.subtract(const Duration(days: 4)),
-        note: 'Summer shirts',
-        method: 'Card',
-        source: TransactionSource.scan,
-      ),
-      Transaction(
-        id: '7',
-        merchant: 'Pharmacy Plus',
-        category: 'Health',
-        amount: 850,
-        date: now.subtract(const Duration(days: 10)),
-        method: 'Cash',
-        source: TransactionSource.manual,
-      ),
-    ];
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_repositoryInitialized) return;
+    _repository =
+        widget.repository ??
+        RepositoryScope.maybeOf(context)?.transactions ??
+        TransactionRepository.inMemory();
+    _repository.addListener(_onRepositoryChanged);
+    _repositoryInitialized = true;
+  }
+
+  void _onRepositoryChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
+    if (_repositoryInitialized) {
+      _repository.removeListener(_onRepositoryChanged);
+    }
     _searchController.dispose();
     _searchFieldController.dispose();
     super.dispose();
@@ -152,15 +105,19 @@ class _HistoryScreenState extends State<HistoryScreen>
 
       // 2. Specialized Filters
       // If 'All' is selected, we don't apply segmented filters (it's the default state)
-      if (_activeFilters.contains('All') && _activeFilters.length == 1)
+      if (_activeFilters.contains('All') && _activeFilters.length == 1) {
         return true;
+      }
 
       // Check Category (Top Bar Filters)
       final categoryFilters = _activeFilters
-          .where((f) => _filterOptions.contains(f) && f != 'All')
+          .where(_categoryFilterOptions.contains)
           .toList();
       if (categoryFilters.isNotEmpty) {
-        if (!categoryFilters.contains(tx.category)) return false;
+        final matchesCategory = categoryFilters.any(
+          (filter) => CategoryUtils.matchesFilter(tx.category, filter),
+        );
+        if (!matchesCategory) return false;
       }
 
       // Check Source (Filter Sheet)
@@ -195,8 +152,9 @@ class _HistoryScreenState extends State<HistoryScreen>
       // Check Special Time Filters
       if (_activeFilters.contains('This Month')) {
         final now = DateTime.now();
-        if (tx.date.month != now.month || tx.date.year != now.year)
+        if (tx.date.month != now.month || tx.date.year != now.year) {
           return false;
+        }
       }
 
       return true;
@@ -528,7 +486,7 @@ class _HistoryScreenState extends State<HistoryScreen>
             if (!isCollapsed)
               ...transactions.asMap().entries.map((entry) {
                 return _buildTransactionRow(entry.value, entry.key, groupIdx);
-              }).toList(),
+              }),
             const SizedBox(height: 24),
           ],
         );
@@ -586,7 +544,7 @@ class _HistoryScreenState extends State<HistoryScreen>
               ],
             ),
           ),
-          const Divider(color: Color(0xFFE8DDD0), height: 1, thickness: 1.2),
+          const Divider(color: AppColors.warmBorder, height: 1, thickness: 1.2),
           const SizedBox(height: 16),
         ],
       ),
@@ -595,146 +553,152 @@ class _HistoryScreenState extends State<HistoryScreen>
 
   Widget _buildTransactionRow(Transaction tx, int index, int groupIdx) {
     final isExpanded = _expandedId == tx.id;
-    final categoryIcon = _getCategoryIcon(tx.category);
+    final categoryIcon = CategoryUtils.icon(tx.category);
 
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0.0, end: 1.0),
-      duration: Duration(milliseconds: 300 + (index * 40)),
-      curve: Curves.easeOutCubic,
-      builder: (context, value, child) {
-        return Transform.translate(
-          offset: Offset(0, (1 - value) * 15),
-          child: Opacity(opacity: value, child: child),
-        );
-      },
-      child: GestureDetector(
-        onTap: () {
-          HapticFeedback.lightImpact();
-          setState(() => _expandedId = isExpanded ? null : tx.id);
+    return RepaintBoundary(
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0.0, end: 1.0),
+        duration: Duration(milliseconds: 300 + (index * 40)),
+        curve: Curves.easeOutCubic,
+        builder: (context, value, child) {
+          return Transform.translate(
+            offset: Offset(0, (1 - value) * 15),
+            child: Opacity(opacity: value, child: child),
+          );
         },
-        child: Dismissible(
-          key: Key(tx.id),
-          direction: DismissDirection.endToStart,
-          onDismissed: (_) => _deleteTransaction(tx.id),
-          background: Container(
-            alignment: Alignment.centerRight,
-            padding: const EdgeInsets.only(right: 24),
-            margin: const EdgeInsets.only(bottom: 16),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFECEC),
-              borderRadius: BorderRadius.circular(24),
-            ),
-            child: Icon(PhosphorIcons.trash(), color: const Color(0xFFD32F2F)),
-          ),
-          child: Container(
-            margin: const EdgeInsets.only(bottom: 16),
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(
-                color: const Color(0xFFE8DDD0).withValues(alpha: 0.4),
+        child: GestureDetector(
+          onTap: () {
+            HapticFeedback.lightImpact();
+            setState(() => _expandedId = isExpanded ? null : tx.id);
+          },
+          child: Dismissible(
+            key: Key(tx.id),
+            direction: DismissDirection.endToStart,
+            onDismissed: (_) => _deleteTransaction(tx.id),
+            background: Container(
+              alignment: Alignment.centerRight,
+              padding: const EdgeInsets.only(right: 24),
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: AppColors.dangerSurface,
+                borderRadius: BorderRadius.circular(24),
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.03),
-                  blurRadius: 15,
-                  offset: const Offset(0, 8),
-                ),
-              ],
+              child: Icon(PhosphorIcons.trash(), color: AppColors.dangerMuted),
             ),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 52,
-                      height: 52,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF333336), // Softened Charcoal
-                        borderRadius: BorderRadius.circular(16),
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: AppColors.warmBorder.withValues(alpha: 0.4),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.03),
+                    blurRadius: 15,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 52,
+                        height: 52,
+                        decoration: BoxDecoration(
+                          color: AppColors.softCharcoal,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Icon(
+                          categoryIcon,
+                          color: AppColors.surface,
+                          size: 24,
+                        ),
                       ),
-                      child: Icon(categoryIcon, color: Colors.white, size: 24),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Text(
-                                tx.merchant,
-                                style: AppTypography.bodySmall.copyWith(
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 16,
-                                  color: AppColors.primary,
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Text(
+                                  tx.merchant,
+                                  style: AppTypography.bodySmall.copyWith(
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 16,
+                                    color: AppColors.primary,
+                                  ),
                                 ),
-                              ),
-                              if (tx.source != TransactionSource.manual) ...[
-                                const SizedBox(width: 8),
-                                Icon(
-                                  tx.source == TransactionSource.voice
-                                      ? PhosphorIcons.microphone(
-                                          PhosphorIconsStyle.fill,
-                                        )
-                                      : PhosphorIcons.calendar(
-                                          PhosphorIconsStyle.fill,
-                                        ),
-                                  size: 13,
-                                  color: AppColors.accent,
-                                ),
+                                if (tx.source != TransactionSource.manual) ...[
+                                  const SizedBox(width: 8),
+                                  Icon(
+                                    tx.source == TransactionSource.voice
+                                        ? PhosphorIcons.microphone(
+                                            PhosphorIconsStyle.fill,
+                                          )
+                                        : PhosphorIcons.calendar(
+                                            PhosphorIconsStyle.fill,
+                                          ),
+                                    size: 13,
+                                    color: AppColors.accent,
+                                  ),
+                                ],
                               ],
-                            ],
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            '${tx.category} · ${DateFormat('h:mm a').format(tx.date)}',
-                            style: AppTypography.caption.copyWith(
-                              color: AppColors.primary.withValues(alpha: 0.4),
-                              fontWeight: FontWeight.w600,
                             ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '${tx.category} · ${DateFormat('h:mm a').format(tx.date)}',
+                              style: AppTypography.caption.copyWith(
+                                color: AppColors.primary.withValues(alpha: 0.4),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            '${tx.isIncome ? '+' : '–'} Rs. ${NumberFormat('#,###').format(tx.amount)}',
+                            style: AppTypography.bodySmall.copyWith(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 16,
+                              color: tx.isIncome
+                                  ? AppColors.success
+                                  : AppColors.primary,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Icon(
+                            isExpanded
+                                ? PhosphorIcons.caretUp(PhosphorIconsStyle.bold)
+                                : PhosphorIcons.caretDown(
+                                    PhosphorIconsStyle.bold,
+                                  ),
+                            size: 14,
+                            color: AppColors.primary.withValues(alpha: 0.2),
                           ),
                         ],
                       ),
-                    ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          '${tx.isIncome ? '+' : '–'} Rs. ${NumberFormat('#,###').format(tx.amount)}',
-                          style: AppTypography.bodySmall.copyWith(
-                            fontWeight: FontWeight.w900,
-                            fontSize: 16,
-                            color: tx.isIncome
-                                ? const Color(0xFF2D7A4F)
-                                : AppColors.primary,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Icon(
-                          isExpanded
-                              ? PhosphorIcons.caretUp(PhosphorIconsStyle.bold)
-                              : PhosphorIcons.caretDown(
-                                  PhosphorIconsStyle.bold,
-                                ),
-                          size: 14,
-                          color: AppColors.primary.withValues(alpha: 0.2),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
 
-                // Expanded Details
-                AnimatedSize(
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeOutCubic,
-                  child: isExpanded
-                      ? _buildRowDetails(tx)
-                      : const SizedBox.shrink(),
-                ),
-              ],
+                  // Expanded Details
+                  AnimatedSize(
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeOutCubic,
+                    child: isExpanded
+                        ? _buildRowDetails(tx)
+                        : const SizedBox.shrink(),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -775,7 +739,11 @@ class _HistoryScreenState extends State<HistoryScreen>
                     context: context,
                     isScrollControlled: true,
                     backgroundColor: Colors.transparent,
-                    builder: (context) => AddTransactionSheet(transaction: tx),
+                    builder: (context) => AddTransactionSheet(
+                      transaction: tx,
+                      initialTab: AddTransactionTab.manual,
+                      repository: _repository,
+                    ),
                   );
                 },
               ),
@@ -995,17 +963,11 @@ class _HistoryScreenState extends State<HistoryScreen>
     );
   }
 
-  void _deleteTransaction(String id) {
+  Future<void> _deleteTransaction(String id) async {
     HapticFeedback.mediumImpact();
-    final index = _allTransactions.indexWhere((tx) => tx.id == id);
-    if (index == -1) return;
-
-    final deletedTx = _allTransactions[index];
-
-    setState(() {
-      _allTransactions.removeAt(index);
-      _expandedId = null;
-    });
+    await _repository.delete(id);
+    if (!mounted) return;
+    setState(() => _expandedId = null);
 
     ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
@@ -1020,11 +982,7 @@ class _HistoryScreenState extends State<HistoryScreen>
         action: SnackBarAction(
           label: 'Undo',
           textColor: AppColors.textOnPrimary,
-          onPressed: () {
-            setState(() {
-              _allTransactions.insert(index, deletedTx);
-            });
-          },
+          onPressed: () => _repository.undoDelete(),
         ),
       ),
     );
@@ -1052,43 +1010,5 @@ class _HistoryScreenState extends State<HistoryScreen>
         ],
       ),
     );
-  }
-
-  Color _getCategoryColor(String category) {
-    switch (category) {
-      case 'Food':
-        return const Color(0xFFFF9F1C);
-      case 'Transport':
-        return const Color(0xFF2EC4B6);
-      case 'Shopping':
-        return const Color(0xFF9D4EDD);
-      case 'Health':
-        return const Color(0xFF2D6A4F);
-      case 'Travel':
-        return const Color(0xFF4361EE);
-      case 'Income':
-        return const Color(0xFF2D7A4F);
-      default:
-        return AppColors.primary;
-    }
-  }
-
-  IconData _getCategoryIcon(String category) {
-    switch (category) {
-      case 'Food':
-        return PhosphorIcons.forkKnife();
-      case 'Transport':
-        return PhosphorIcons.car();
-      case 'Shopping':
-        return PhosphorIcons.shoppingBag();
-      case 'Health':
-        return PhosphorIcons.firstAid();
-      case 'Travel':
-        return PhosphorIcons.airplane();
-      case 'Income':
-        return PhosphorIcons.trendUp();
-      default:
-        return PhosphorIcons.dotsThree();
-    }
   }
 }
