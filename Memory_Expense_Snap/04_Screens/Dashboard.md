@@ -23,6 +23,7 @@ Connected behavior:
 - Tab page widgets are cached between dock taps, adjacent tabs are implicitly warmed, and already-built tab pages use keep-alive wrappers so repeat navigation does not reconstruct the full screen.
 - Major Dashboard cards are wrapped in repaint isolation to reduce unnecessary repaint work during navigation and repository updates.
 - System back from Analytics, History, or Profile returns to Dashboard Home instead of leaving the authenticated shell.
+- The floating dock keeps its glass form and fixed central Add action. The Add control is now a layered Kharcha capture coin: an amber/brass outer rim, inset charcoal medallion, etched ring, and custom rounded cream plus that rotates into a close mark while preserving the existing press feedback. Inactive destinations are icon-only; the selected destination expands horizontally into a warm capsule and reveals its label through clipped width, translation, and opacity. Home/Analytics and History/Profile redistribute only within their own fixed group, so the Add action and outer dock never drift. Rapid switches continue from the current animation value, the Add action has subtle 0.94 press feedback, and reduced-motion mode removes the icon spring gesture.
 
 Performance note:
 

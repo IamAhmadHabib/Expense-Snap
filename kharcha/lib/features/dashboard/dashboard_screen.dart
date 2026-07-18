@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui';
 import '../analytics/analytics_screen.dart';
 import '../history/history_screen.dart';
@@ -46,6 +47,7 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   int _activeTab = 0; // 0: Home, 1: Analytics, 2: History, 3: Profile
   bool _isSheetOpen = false;
+  bool _isAddPressed = false;
 
   // Controller for screen transitions
   late AnimationController _screenTransitionController;
@@ -287,7 +289,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     if (_isSheetOpen) return;
 
     HapticFeedback.mediumImpact();
-    _isSheetOpen = true;
+    setState(() => _isSheetOpen = true);
 
     final result = await showModalBottomSheet(
       context: context,
@@ -314,7 +316,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
 
     if (!mounted) return;
-    _isSheetOpen = false;
+    setState(() => _isSheetOpen = false);
 
     if (result == true) {
       // Phase 2 will refresh shared transaction data here.
@@ -1167,14 +1169,20 @@ class _DashboardScreenState extends State<DashboardScreen>
   // ─── 4. The Floating Glass Dock ────────────────────────
 
   Widget _buildFloatingDock() {
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final dockHorizontalPadding = ((screenWidth - 280) * 0.20).clamp(
+      8.0,
+      AppSpacing.screenHorizontal,
+    );
+
     return SlideTransition(
       position: _dockSlide,
       child: Align(
         alignment: Alignment.bottomCenter,
         child: Padding(
           padding: EdgeInsets.only(
-            left: AppSpacing.screenHorizontal,
-            right: AppSpacing.screenHorizontal,
+            left: dockHorizontalPadding,
+            right: dockHorizontalPadding,
             bottom: MediaQuery.paddingOf(context).bottom > 0
                 ? MediaQuery.paddingOf(context).bottom
                 : 32, // Hovers securely
@@ -1232,110 +1240,198 @@ class _DashboardScreenState extends State<DashboardScreen>
                         width: 0.8,
                       ),
                     ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        _dockItem(
-                          'Home',
-                          PhosphorIcons.house(PhosphorIconsStyle.fill),
-                          PhosphorIcons.house(PhosphorIconsStyle.light),
-                          _activeTab == 0,
-                          0,
-                        ),
-                        _dockItem(
-                          'Analytics',
-                          PhosphorIcons.chartPieSlice(PhosphorIconsStyle.fill),
-                          PhosphorIcons.chartPieSlice(PhosphorIconsStyle.light),
-                          _activeTab == 1,
-                          1,
-                        ),
-                        const SizedBox(
-                          width: 70,
-                        ), // Center cutout bridging area for the FAB overlay
-                        _dockItem(
-                          'History',
-                          PhosphorIcons.clockCounterClockwise(
-                            PhosphorIconsStyle.fill,
-                          ),
-                          PhosphorIcons.clockCounterClockwise(
-                            PhosphorIconsStyle.light,
-                          ),
-                          _activeTab == 2,
-                          2,
-                        ),
-                        _dockItem(
-                          'Profile',
-                          PhosphorIcons.user(PhosphorIconsStyle.fill),
-                          PhosphorIcons.user(PhosphorIconsStyle.light),
-                          _activeTab == 3,
-                          3,
-                        ),
-                      ],
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        const centerGap = 60.0;
+                        final groupWidth =
+                            (constraints.maxWidth - centerGap) / 2;
+                        final reduceMotion =
+                            MediaQuery.maybeOf(context)?.disableAnimations ??
+                            false;
+
+                        return Row(
+                          children: [
+                            SizedBox(
+                              width: groupWidth,
+                              child: _buildDockGroup(
+                                groupWidth: groupWidth,
+                                reduceMotion: reduceMotion,
+                                destinations: [
+                                  _DockDestination(
+                                    label: 'Home',
+                                    activeIcon: PhosphorIcons.house(
+                                      PhosphorIconsStyle.fill,
+                                    ),
+                                    inactiveIcon: PhosphorIcons.house(
+                                      PhosphorIconsStyle.light,
+                                    ),
+                                    index: 0,
+                                  ),
+                                  _DockDestination(
+                                    label: 'Analytics',
+                                    activeIcon: PhosphorIcons.chartPieSlice(
+                                      PhosphorIconsStyle.fill,
+                                    ),
+                                    inactiveIcon: PhosphorIcons.chartPieSlice(
+                                      PhosphorIconsStyle.light,
+                                    ),
+                                    index: 1,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: centerGap),
+                            SizedBox(
+                              width: groupWidth,
+                              child: _buildDockGroup(
+                                groupWidth: groupWidth,
+                                reduceMotion: reduceMotion,
+                                destinations: [
+                                  _DockDestination(
+                                    label: 'History',
+                                    activeIcon:
+                                        PhosphorIcons.clockCounterClockwise(
+                                          PhosphorIconsStyle.fill,
+                                        ),
+                                    inactiveIcon:
+                                        PhosphorIcons.clockCounterClockwise(
+                                          PhosphorIconsStyle.light,
+                                        ),
+                                    index: 2,
+                                  ),
+                                  _DockDestination(
+                                    label: 'Profile',
+                                    activeIcon: PhosphorIcons.user(
+                                      PhosphorIconsStyle.fill,
+                                    ),
+                                    inactiveIcon: PhosphorIcons.user(
+                                      PhosphorIconsStyle.light,
+                                    ),
+                                    index: 3,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        );
+                      },
                     ),
                   ),
                 ),
               ),
 
-              // The Overlapping Deep Charcoal FAB
+              // The fixed Kharcha capture coin.
               Positioned(
                 bottom:
                     25, // Extends proudly above the visual edge of the glass pill
-                child: GestureDetector(
-                  onTap: () async {
-                    await _openAddTransaction(AddTransactionTab.voice);
-                  },
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    width: _isSheetOpen ? 68 : 64,
-                    height: _isSheetOpen ? 68 : 64,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          AppColors.accent, // Neon Brand Amber
-                          AppColors.accentDeep,
-                        ],
+                child: Semantics(
+                  button: true,
+                  label: 'Add transaction',
+                  child: GestureDetector(
+                    key: const ValueKey('dock_add_button'),
+                    behavior: HitTestBehavior.opaque,
+                    onTapDown: (_) {
+                      if (!_isSheetOpen) {
+                        setState(() => _isAddPressed = true);
+                      }
+                    },
+                    onTapUp: (_) => setState(() => _isAddPressed = false),
+                    onTapCancel: () => setState(() => _isAddPressed = false),
+                    onTap: () async {
+                      await _openAddTransaction(AddTransactionTab.voice);
+                    },
+                    child: AnimatedScale(
+                      duration: Duration(
+                        milliseconds:
+                            (MediaQuery.maybeOf(context)?.disableAnimations ??
+                                false)
+                            ? 80
+                            : 110,
                       ),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: AppColors.surface.withValues(
-                          alpha: 0.25,
-                        ), // Soft matte specular rim
-                        width: 0.8,
-                      ),
-                      boxShadow: [
-                        // Focused structural shadow
-                        BoxShadow(
-                          color: AppColors.primary.withValues(alpha: 0.18),
-                          blurRadius: 15,
-                          offset: const Offset(0, 6),
-                        ),
-                        // Soft volumetric glow
-                        BoxShadow(
-                          color: AppColors.accent.withValues(alpha: 0.22),
-                          blurRadius: 35,
-                          offset: const Offset(0, 14),
-                        ),
-                      ],
-                    ),
-                    child: Center(
-                      child: AnimatedRotation(
-                        duration: const Duration(milliseconds: 300),
-                        turns: _isSheetOpen ? 0.125 : 0, // 45 degrees
-                        child: Icon(
-                          _isSheetOpen
-                              ? PhosphorIcons.x(PhosphorIconsStyle.bold)
-                              : PhosphorIcons.plus(PhosphorIconsStyle.bold),
-                          color: AppColors.primary,
-                          size: 30,
-                          shadows: [
-                            Shadow(
-                              color: AppColors.primary.withValues(alpha: 0.1),
-                              blurRadius: 4,
-                              offset: const Offset(0, 1.5),
+                      curve: Curves.easeOutCubic,
+                      scale: _isAddPressed ? 0.94 : 1,
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        width: _isSheetOpen ? 70 : 68,
+                        height: _isSheetOpen ? 70 : 68,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              AppColors.accentLight,
+                              AppColors.accent,
+                              AppColors.accentDeep,
+                            ],
+                            stops: [0, 0.46, 1],
+                          ),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: AppColors.surface.withValues(alpha: 0.78),
+                            width: 1.6,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.primary.withValues(alpha: 0.22),
+                              blurRadius: 18,
+                              offset: const Offset(0, 8),
+                            ),
+                            BoxShadow(
+                              color: AppColors.accentDeep.withValues(
+                                alpha: 0.16,
+                              ),
+                              blurRadius: 24,
+                              offset: const Offset(0, 10),
                             ),
                           ],
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(7),
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  AppColors.primary,
+                                  AppColors.headerCard,
+                                ],
+                              ),
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: AppColors.accentLight.withValues(
+                                  alpha: 0.24,
+                                ),
+                                width: 0.8,
+                              ),
+                            ),
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                Positioned.fill(
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(4),
+                                    child: DecoratedBox(
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: AppColors.accent.withValues(
+                                            alpha: 0.14,
+                                          ),
+                                          width: 0.8,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                AnimatedRotation(
+                                  duration: const Duration(milliseconds: 300),
+                                  turns: _isSheetOpen ? 0.125 : 0,
+                                  child: const _KharchaAddMark(),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -1349,66 +1445,253 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
-  Widget _dockItem(
-    String label,
-    IconData activeIcon,
-    IconData inactiveIcon,
-    bool isActive,
-    int index,
-  ) {
-    final color = isActive
-        ? AppColors.primary
-        : AppColors.primary.withValues(alpha: 0.25);
-    final icon = isActive ? activeIcon : inactiveIcon;
+  Widget _buildDockGroup({
+    required double groupWidth,
+    required bool reduceMotion,
+    required List<_DockDestination> destinations,
+  }) {
+    final activeInGroup = destinations.any(
+      (destination) => destination.index == _activeTab,
+    );
+    final restingWidth = groupWidth / destinations.length;
+    const compactWidth = 44.0;
+    final expandedWidth = groupWidth - compactWidth;
 
-    return Expanded(
-      child: InkWell(
-        onTap: () {
-          _selectTab(index);
-        },
+    return Row(
+      children: destinations.map((destination) {
+        final isActive = destination.index == _activeTab;
+        final targetWidth = activeInGroup
+            ? (isActive ? expandedWidth : compactWidth)
+            : restingWidth;
+
+        return _AnimatedDockItem(
+          key: ValueKey('dock_tab_${destination.index}'),
+          destination: destination,
+          isActive: isActive,
+          width: targetWidth,
+          reduceMotion: reduceMotion,
+          onTap: () => _selectTab(destination.index),
+        );
+      }).toList(),
+    );
+  }
+}
+
+class _KharchaAddMark extends StatelessWidget {
+  const _KharchaAddMark();
+
+  @override
+  Widget build(BuildContext context) {
+    const barDecoration = BoxDecoration(
+      color: AppColors.primaryLight,
+      borderRadius: BorderRadius.all(Radius.circular(99)),
+    );
+
+    return const SizedBox.square(
+      dimension: 27,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          SizedBox(
+            width: 27,
+            height: 4,
+            child: DecoratedBox(decoration: barDecoration),
+          ),
+          SizedBox(
+            width: 4,
+            height: 27,
+            child: DecoratedBox(decoration: barDecoration),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DockDestination {
+  final String label;
+  final IconData activeIcon;
+  final IconData inactiveIcon;
+  final int index;
+
+  const _DockDestination({
+    required this.label,
+    required this.activeIcon,
+    required this.inactiveIcon,
+    required this.index,
+  });
+}
+
+class _AnimatedDockItem extends StatefulWidget {
+  final _DockDestination destination;
+  final bool isActive;
+  final double width;
+  final bool reduceMotion;
+  final VoidCallback onTap;
+
+  const _AnimatedDockItem({
+    super.key,
+    required this.destination,
+    required this.isActive,
+    required this.width,
+    required this.reduceMotion,
+    required this.onTap,
+  });
+
+  @override
+  State<_AnimatedDockItem> createState() => _AnimatedDockItemState();
+}
+
+class _AnimatedDockItemState extends State<_AnimatedDockItem>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _selectionController;
+
+  Duration get _forwardDuration =>
+      Duration(milliseconds: widget.reduceMotion ? 140 : 320);
+
+  Duration get _reverseDuration =>
+      Duration(milliseconds: widget.reduceMotion ? 120 : 260);
+
+  Curve get _motionCurve => widget.reduceMotion
+      ? Curves.easeOutCubic
+      : const Cubic(0.20, 1.04, 0.30, 1.0);
+
+  @override
+  void initState() {
+    super.initState();
+    _selectionController = AnimationController(
+      vsync: this,
+      duration: _forwardDuration,
+      reverseDuration: _reverseDuration,
+      value: widget.isActive ? 1 : 0,
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant _AnimatedDockItem oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _selectionController
+      ..duration = _forwardDuration
+      ..reverseDuration = _reverseDuration;
+
+    if (widget.isActive != oldWidget.isActive) {
+      if (widget.isActive) {
+        _selectionController.forward();
+      } else {
+        _selectionController.reverse();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _selectionController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final widthDuration = Duration(
+      milliseconds: widget.reduceMotion ? 140 : 300,
+    );
+
+    return Semantics(
+      button: true,
+      selected: widget.isActive,
+      label: widget.destination.label,
+      onTap: widget.onTap,
+      excludeSemantics: true,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: widget.onTap,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOutCubic,
-          margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+          duration: widthDuration,
+          curve: _motionCurve,
+          width: widget.width,
+          height: 56,
+          clipBehavior: Clip.hardEdge,
           decoration: BoxDecoration(
-            color: isActive
+            color: widget.isActive
                 ? AppColors.accent.withValues(alpha: 0.12)
-                : Colors.transparent,
+                : AppColors.surface.withValues(alpha: 0),
             borderRadius: BorderRadius.circular(24),
           ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Icon(icon, color: color, size: 24),
-                  if (isActive)
-                    Positioned(
-                      top: -2,
-                      right: -4,
-                      child: Container(
-                        width: 6,
-                        height: 6,
-                        decoration: BoxDecoration(
-                          color: AppColors.accent,
-                          shape: BoxShape.circle,
+          child: AnimatedBuilder(
+            animation: _selectionController,
+            builder: (context, child) {
+              final progress = _motionCurve.transform(
+                _selectionController.value,
+              );
+              final reveal = const Interval(
+                0.12,
+                1,
+                curve: Curves.easeOutCubic,
+              ).transform(_selectionController.value);
+              final pulse = widget.reduceMotion
+                  ? 0.0
+                  : math.sin(math.pi * _selectionController.value);
+              final iconColor = Color.lerp(
+                AppColors.navInactive,
+                AppColors.primary,
+                progress.clamp(0, 1),
+              )!;
+
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Transform.rotate(
+                      angle: -0.07 * pulse,
+                      child: Transform.scale(
+                        scale: 1 + (0.035 * pulse),
+                        child: Icon(
+                          widget.isActive
+                              ? widget.destination.activeIcon
+                              : widget.destination.inactiveIcon,
+                          color: iconColor,
+                          size: 22,
                         ),
                       ),
                     ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: AppTypography.caption.copyWith(
-                  color: isActive ? AppColors.primary : AppColors.navInactive,
-                  fontWeight: isActive ? FontWeight.w800 : FontWeight.w600,
-                  fontSize: 11,
-                  letterSpacing: 0.1,
+                    if (_selectionController.value > 0.001) ...[
+                      SizedBox(width: 4 * reveal),
+                      Flexible(
+                        child: ClipRect(
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            widthFactor: reveal,
+                            child: Opacity(
+                              opacity: reveal.clamp(0, 1),
+                              child: Transform.translate(
+                                offset: Offset(8 * (1 - reveal), 0),
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  alignment: Alignment.centerLeft,
+                                  child: Text(
+                                    widget.destination.label,
+                                    maxLines: 1,
+                                    softWrap: false,
+                                    overflow: TextOverflow.clip,
+                                    style: AppTypography.caption.copyWith(
+                                      color: AppColors.primary,
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 10.5,
+                                      height: 1,
+                                      letterSpacing: 0.1,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
-              ),
-            ],
+              );
+            },
           ),
         ),
       ),
