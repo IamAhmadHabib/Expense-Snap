@@ -11,6 +11,7 @@ import '../../repositories/app_settings_repository.dart';
 import '../../repositories/repository_scope.dart';
 import '../../repositories/transaction_repository.dart';
 import '../../utils/category_utils.dart';
+import '../onboarding/onboarding_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   final AppSettingsRepository? settingsRepository;
@@ -119,241 +120,255 @@ class _ProfileScreenState extends State<ProfileScreen>
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.light,
+      value: SystemUiOverlayStyle.dark,
       child: Scaffold(
         backgroundColor: AppColors.background,
         body: TweenAnimationBuilder<double>(
           tween: Tween(begin: 0.0, end: 1.0),
           duration: const Duration(milliseconds: 400),
           builder: (context, value, child) {
-            return SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
+            return SafeArea(
+              bottom: false,
               child: Column(
                 children: [
                   RepaintBoundary(child: _buildHeader()),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Column(
-                      children: [
-                        RepaintBoundary(
-                          child: _buildSectionStaggered(
-                            index: 0,
-                            label: 'Personal Info',
-                            showArrow: false,
-                            onLabelTap: () => _showEditInfo(
-                              context,
-                              'Full Name',
-                              _settingsRepository.settings.userName,
-                            ),
-                            children: [
-                              _settingsRow(
-                                PhosphorIcons.user(),
-                                'Full Name',
-                                _settingsRepository.settings.userName,
-                                onTap: () => _showEditInfo(
+                  Expanded(
+                    child: SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Column(
+                          children: [
+                            RepaintBoundary(
+                              child: _buildSectionStaggered(
+                                index: 0,
+                                label: 'Personal Info',
+                                showArrow: false,
+                                onLabelTap: () => _showEditInfo(
                                   context,
                                   'Full Name',
                                   _settingsRepository.settings.userName,
                                 ),
-                              ),
-                              _settingsRow(
-                                PhosphorIcons.envelope(),
-                                'Email',
-                                _currentSettings.profileEmail.isEmpty
-                                    ? 'Not connected'
-                                    : _currentSettings.profileEmail,
-                                isTappable: false,
-                              ),
-                            ],
-                          ),
-                        ),
-                        RepaintBoundary(
-                          child: _buildSectionStaggered(
-                            index: 1,
-                            label: 'Budget',
-                            children: [
-                              _settingsRow(
-                                PhosphorIcons.chartPieSlice(),
-                                'Monthly Budget',
-                                '${_settingsRepository.settings.currencySymbol} ${NumberFormat('#,###').format(_settingsRepository.settings.monthlyBudget)}',
-                                onTap: () => _showMonthlyBudgetPicker(context),
-                              ),
-                              _settingsRow(
-                                PhosphorIcons.listBullets(),
-                                'Manage Categories',
-                                '',
-                                onTap: () => _showCategoryBudgets(context),
-                              ),
-                              _settingsRow(
-                                PhosphorIcons.arrowsClockwise(),
-                                'Budget resets on',
-                                '${_settingsRepository.settings.resetDay}${_getDaySuffix(_settingsRepository.settings.resetDay)}',
-                                onTap: () => _showResetDayPicker(context),
-                              ),
-                            ],
-                          ),
-                        ),
-                        RepaintBoundary(
-                          child: _buildSectionStaggered(
-                            index: 2,
-                            label: 'Currency',
-                            children: [
-                              _settingsRow(
-                                PhosphorIcons.currencyCircleDollar(),
-                                'Currency',
-                                _settingsRepository.settings.currencySymbol,
-                                onTap: () => _showCurrencyPicker(context),
-                              ),
-                            ],
-                          ),
-                        ),
-                        _buildSectionStaggered(
-                          index: 3,
-                          label: 'Notifications',
-                          children: [
-                            _settingsToggle(
-                              PhosphorIcons.bellRinging(),
-                              'Enable Notifications',
-                              _notificationsEnabled,
-                              (v) => _updateSettings(
-                                _settingsRepository.settings.copyWith(
-                                  notificationsEnabled: v,
-                                ),
-                              ),
-                            ),
-                            if (_notificationsEnabled) ...[
-                              Divider(
-                                height: 1,
-                                thickness: 1,
-                                color: AppColors.primary.withValues(
-                                  alpha: 0.08,
-                                ),
-                                indent: 20,
-                                endIndent: 20,
-                              ),
-                              _settingsToggle(
-                                PhosphorIcons.bell(),
-                                'Weekly digest',
-                                _weeklyDigest,
-                                (v) => _updateSettings(
-                                  _settingsRepository.settings.copyWith(
-                                    monthlyDigest: v,
-                                  ),
-                                ),
-                              ),
-                              _settingsToggle(
-                                PhosphorIcons.warningCircle(),
-                                'Budget alerts',
-                                _budgetAlerts,
-                                (v) => _updateSettings(
-                                  _settingsRepository.settings.copyWith(
-                                    budgetAlerts: v,
-                                  ),
-                                ),
-                              ),
-                              _settingsToggle(
-                                PhosphorIcons.lightbulb(),
-                                'Spending insights',
-                                _spendingInsights,
-                                (v) => _updateSettings(
-                                  _settingsRepository.settings.copyWith(
-                                    spendingInsights: v,
-                                  ),
-                                ),
-                              ),
-                              _settingsToggle(
-                                PhosphorIcons.calendar(),
-                                'Daily reminder',
-                                _dailyReminder,
-                                (v) {
-                                  HapticFeedback.mediumImpact();
-                                  setState(() => _dailyReminder = v);
-                                },
-                              ),
-                              AnimatedSize(
-                                duration: const Duration(milliseconds: 300),
-                                curve: Curves.easeInOut,
-                                child: _dailyReminder
-                                    ? _settingsRow(
-                                        PhosphorIcons.clock(),
-                                        'Remind me at',
-                                        _reminderTime,
-                                        isNested: true,
-                                        onTap: () => _showTimePicker(context),
-                                      )
-                                    : const SizedBox(
-                                        width: double.infinity,
-                                        height: 0.1,
-                                      ),
-                              ),
-                            ] else ...[
-                              Padding(
-                                padding: const EdgeInsets.fromLTRB(
-                                  56,
-                                  12,
-                                  20,
-                                  20,
-                                ),
-                                child: Text(
-                                  'Enable notifications to receive monthly digest, budget alerts, and spending insights.',
-                                  style: AppTypography.caption.copyWith(
-                                    color: AppColors.primary.withValues(
-                                      alpha: 0.4,
+                                children: [
+                                  _settingsRow(
+                                    PhosphorIcons.user(),
+                                    'Full Name',
+                                    _settingsRepository.settings.userName,
+                                    onTap: () => _showEditInfo(
+                                      context,
+                                      'Full Name',
+                                      _settingsRepository.settings.userName,
                                     ),
-                                    fontWeight: FontWeight.w500,
-                                    height: 1.4,
+                                  ),
+                                  _settingsRow(
+                                    PhosphorIcons.envelope(),
+                                    'Email',
+                                    _currentSettings.profileEmail.isEmpty
+                                        ? 'Not connected'
+                                        : _currentSettings.profileEmail,
+                                    isTappable: false,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            RepaintBoundary(
+                              child: _buildSectionStaggered(
+                                index: 1,
+                                label: 'Budget',
+                                children: [
+                                  _settingsRow(
+                                    PhosphorIcons.chartPieSlice(),
+                                    'Monthly Budget',
+                                    '${_settingsRepository.settings.currencySymbol} ${NumberFormat('#,###').format(_settingsRepository.settings.monthlyBudget)}',
+                                    onTap: () =>
+                                        _showMonthlyBudgetPicker(context),
+                                  ),
+                                  _settingsRow(
+                                    PhosphorIcons.listBullets(),
+                                    'Manage Categories',
+                                    '',
+                                    onTap: () => _showCategoryBudgets(context),
+                                  ),
+                                  _settingsRow(
+                                    PhosphorIcons.arrowsClockwise(),
+                                    'Budget resets on',
+                                    '${_settingsRepository.settings.resetDay}${_getDaySuffix(_settingsRepository.settings.resetDay)}',
+                                    onTap: () => _showResetDayPicker(context),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            RepaintBoundary(
+                              child: _buildSectionStaggered(
+                                index: 2,
+                                label: 'Currency',
+                                children: [
+                                  _settingsRow(
+                                    PhosphorIcons.currencyCircleDollar(),
+                                    'Currency',
+                                    _settingsRepository.settings.currencySymbol,
+                                    onTap: () => _showCurrencyPicker(context),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            _buildSectionStaggered(
+                              index: 3,
+                              label: 'Notifications',
+                              children: [
+                                _settingsToggle(
+                                  PhosphorIcons.bellRinging(),
+                                  'Enable Notifications',
+                                  _notificationsEnabled,
+                                  (v) => _updateSettings(
+                                    _settingsRepository.settings.copyWith(
+                                      notificationsEnabled: v,
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ],
-                          ],
-                        ),
-                        _buildSectionStaggered(
-                          index: 4,
-                          label: 'App',
-                          children: [
-                            _settingsRow(
-                              PhosphorIcons.globe(),
-                              'Language',
-                              _settingsRepository.settings.language,
-                              onTap: () => _showLanguagePicker(context),
+                                if (_notificationsEnabled) ...[
+                                  Divider(
+                                    height: 1,
+                                    thickness: 1,
+                                    color: AppColors.primary.withValues(
+                                      alpha: 0.08,
+                                    ),
+                                    indent: 20,
+                                    endIndent: 20,
+                                  ),
+                                  _settingsToggle(
+                                    PhosphorIcons.bell(),
+                                    'Weekly digest',
+                                    _weeklyDigest,
+                                    (v) => _updateSettings(
+                                      _settingsRepository.settings.copyWith(
+                                        monthlyDigest: v,
+                                      ),
+                                    ),
+                                  ),
+                                  _settingsToggle(
+                                    PhosphorIcons.warningCircle(),
+                                    'Budget alerts',
+                                    _budgetAlerts,
+                                    (v) => _updateSettings(
+                                      _settingsRepository.settings.copyWith(
+                                        budgetAlerts: v,
+                                      ),
+                                    ),
+                                  ),
+                                  _settingsToggle(
+                                    PhosphorIcons.lightbulb(),
+                                    'Spending insights',
+                                    _spendingInsights,
+                                    (v) => _updateSettings(
+                                      _settingsRepository.settings.copyWith(
+                                        spendingInsights: v,
+                                      ),
+                                    ),
+                                  ),
+                                  _settingsToggle(
+                                    PhosphorIcons.calendar(),
+                                    'Daily reminder',
+                                    _dailyReminder,
+                                    (v) {
+                                      HapticFeedback.mediumImpact();
+                                      setState(() => _dailyReminder = v);
+                                    },
+                                  ),
+                                  AnimatedSize(
+                                    duration: const Duration(milliseconds: 300),
+                                    curve: Curves.easeInOut,
+                                    child: _dailyReminder
+                                        ? _settingsRow(
+                                            PhosphorIcons.clock(),
+                                            'Remind me at',
+                                            _reminderTime,
+                                            isNested: true,
+                                            onTap: () =>
+                                                _showTimePicker(context),
+                                          )
+                                        : const SizedBox(
+                                            width: double.infinity,
+                                            height: 0.1,
+                                          ),
+                                  ),
+                                ] else ...[
+                                  Padding(
+                                    padding: const EdgeInsets.fromLTRB(
+                                      56,
+                                      12,
+                                      20,
+                                      20,
+                                    ),
+                                    child: Text(
+                                      'Enable notifications to receive monthly digest, budget alerts, and spending insights.',
+                                      style: AppTypography.caption.copyWith(
+                                        color: AppColors.primary.withValues(
+                                          alpha: 0.4,
+                                        ),
+                                        fontWeight: FontWeight.w500,
+                                        height: 1.4,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
                             ),
-                            _settingsToggle(
-                              PhosphorIcons.moon(),
-                              'Dark Mode',
-                              _darkMode,
-                              (v) => _updateSettings(
-                                _settingsRepository.settings.copyWith(
-                                  darkMode: v,
+                            _buildSectionStaggered(
+                              index: 4,
+                              label: 'App',
+                              children: [
+                                const SizedBox(height: 8),
+                                _settingsRow(
+                                  PhosphorIcons.globe(),
+                                  'Language',
+                                  _settingsRepository.settings.language,
+                                  compact: true,
+                                  onTap: () => _showLanguagePicker(context),
                                 ),
-                              ),
+                                _settingsToggle(
+                                  PhosphorIcons.moon(),
+                                  'Dark Mode',
+                                  _darkMode,
+                                  (v) => _updateSettings(
+                                    _settingsRepository.settings.copyWith(
+                                      darkMode: v,
+                                    ),
+                                  ),
+                                  compact: true,
+                                ),
+                                _settingsRow(
+                                  PhosphorIcons.star(),
+                                  'Rate Kharcha',
+                                  '',
+                                  compact: true,
+                                  onTap: () => _showRateKharcha(context),
+                                ),
+                                _settingsRow(
+                                  PhosphorIcons.paperPlaneTilt(),
+                                  'Send Feedback',
+                                  '',
+                                  compact: true,
+                                  onTap: () => _showFeedbackPicker(context),
+                                ),
+                                _settingsRow(
+                                  PhosphorIcons.info(),
+                                  'Version',
+                                  '1.0',
+                                  compact: true,
+                                  isTappable: false,
+                                ),
+                                const SizedBox(height: 8),
+                              ],
                             ),
-                            _settingsRow(
-                              PhosphorIcons.star(),
-                              'Rate Kharcha',
-                              '',
-                              onTap: () => _showRateKharcha(context),
-                            ),
-                            _settingsRow(
-                              PhosphorIcons.paperPlaneTilt(),
-                              'Send Feedback',
-                              '',
-                              onTap: () => _showFeedbackPicker(context),
-                            ),
-                            _settingsRow(
-                              PhosphorIcons.info(),
-                              'Version',
-                              '1.0',
-                              isTappable: false,
-                            ),
+                            const SizedBox(height: 32),
+                            _buildDangerZone(),
+                            const SizedBox(
+                              height: 120,
+                            ), // Bottom padding for floating dock
                           ],
                         ),
-                        const SizedBox(height: 32),
-                        _buildDangerZone(),
-                        const SizedBox(
-                          height: 120,
-                        ), // Bottom padding for floating dock
-                      ],
+                      ),
                     ),
                   ),
                 ],
@@ -596,7 +611,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                 const SizedBox(width: 16),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: _signOut,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       padding: const EdgeInsets.symmetric(vertical: 20),
@@ -615,12 +630,32 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
+  Future<void> _signOut() async {
+    try {
+      await RepositoryScope.of(context).services.auth.signOut();
+      if (!mounted) return;
+
+      final navigator = Navigator.of(context, rootNavigator: true);
+      navigator.pop();
+      navigator.pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const OnboardingScreen()),
+        (_) => false,
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not log out. Please try again.')),
+      );
+    }
+  }
+
   Widget _settingsRow(
     IconData icon,
     String title,
     String value, {
     bool isTappable = true,
     bool isNested = false,
+    bool compact = false,
     VoidCallback? onTap,
   }) {
     return InkWell(
@@ -630,8 +665,8 @@ class _ProfileScreenState extends State<ProfileScreen>
         padding: EdgeInsets.only(
           left: isNested ? 56 : 20,
           right: 20,
-          top: 18,
-          bottom: 18,
+          top: compact ? 8 : 18,
+          bottom: compact ? 8 : 18,
         ),
         child: Row(
           children: [
@@ -674,10 +709,11 @@ class _ProfileScreenState extends State<ProfileScreen>
     IconData icon,
     String title,
     bool value,
-    ValueChanged<bool> onChanged,
-  ) {
+    ValueChanged<bool> onChanged, {
+    bool compact = false,
+  }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+      padding: EdgeInsets.symmetric(horizontal: 20, vertical: compact ? 0 : 4),
       child: Row(
         children: [
           Icon(icon, size: 22, color: AppColors.primary),
@@ -691,16 +727,21 @@ class _ProfileScreenState extends State<ProfileScreen>
               ),
             ),
           ),
-          Switch.adaptive(
-            value: value,
-            onChanged: (v) {
-              HapticFeedback.lightImpact();
-              onChanged(v);
-            },
-            activeThumbColor: AppColors.surface,
-            activeTrackColor: AppColors.primary,
-            inactiveThumbColor: AppColors.surface,
-            inactiveTrackColor: AppColors.border,
+          Transform.scale(
+            scale: 0.84,
+            child: Switch.adaptive(
+              value: value,
+              onChanged: (v) {
+                HapticFeedback.lightImpact();
+                onChanged(v);
+              },
+              activeThumbColor: AppColors.surface,
+              activeTrackColor: Colors.blue,
+              inactiveThumbColor: AppColors.surface,
+              inactiveTrackColor: AppColors.surfaceVariant,
+              trackOutlineColor: WidgetStateProperty.all(Colors.transparent),
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
           ),
         ],
       ),
@@ -794,80 +835,130 @@ class _ProfileScreenState extends State<ProfileScreen>
           child: Opacity(opacity: animation.value, child: child),
         );
       },
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.fromLTRB(24, 72, 24, 40),
-        decoration: const BoxDecoration(
-          color: AppColors.headerCard,
-          borderRadius: BorderRadius.vertical(bottom: Radius.circular(48)),
-        ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Stack(
-              alignment: Alignment.bottomRight,
-              children: [
-                Container(
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.amberGold.withValues(alpha: 0.45),
-                        blurRadius: 40,
-                        spreadRadius: 6,
+            Text(
+              'My Profile',
+              style: AppTypography.h2.copyWith(fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(height: 14),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.12),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Stack(
+                        alignment: Alignment.bottomRight,
+                        children: [
+                          CircleAvatar(
+                            radius: 27,
+                            backgroundColor: AppColors.warmCharcoal,
+                            child: Icon(
+                              PhosphorIcons.user(PhosphorIconsStyle.fill),
+                              color: AppColors.textOnPrimary,
+                              size: 26,
+                            ),
+                          ),
+                          Container(
+                            width: 12,
+                            height: 12,
+                            decoration: BoxDecoration(
+                              color: AppColors.success,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: AppColors.headerCard,
+                                width: 2,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(width: 13),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => _showEditInfo(
+                            context,
+                            'Full Name',
+                            _currentSettings.userName,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _currentSettings.userName,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: AppTypography.bodySmall.copyWith(
+                                  color: AppColors.surface,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                _currentSettings.profileEmail.isEmpty
+                                    ? 'Kharcha member'
+                                    : _currentSettings.profileEmail,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: AppTypography.caption.copyWith(
+                                  color: AppColors.surface.withValues(
+                                    alpha: 0.56,
+                                  ),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      TextButton.icon(
+                        onPressed: () => _showEditInfo(
+                          context,
+                          'Full Name',
+                          _currentSettings.userName,
+                        ),
+                        icon: Icon(PhosphorIcons.pencilSimple(), size: 14),
+                        label: const Text('Edit'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppColors.accent,
+                          textStyle: AppTypography.caption.copyWith(
+                            fontWeight: FontWeight.w800,
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 6,
+                          ),
+                        ),
                       ),
                     ],
                   ),
-                  child: CircleAvatar(
-                    radius: 44,
-                    backgroundColor: AppColors.warmCharcoal,
-                    child: Icon(
-                      PhosphorIcons.user(PhosphorIconsStyle.fill),
-                      color: AppColors.textOnPrimary,
-                      size: 40,
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 15),
+                    child: Divider(
+                      height: 1,
+                      color: AppColors.surface.withValues(alpha: 0.1),
                     ),
                   ),
-                ),
-                GestureDetector(
-                  onTap: () => HapticFeedback.mediumImpact(),
-                  child: Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: const BoxDecoration(
-                      color: AppColors.amberGold,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      PhosphorIcons.pencilSimple(PhosphorIconsStyle.bold),
-                      size: 14,
-                      color: AppColors.headerCard,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            GestureDetector(
-              onTap: () => _showEditInfo(
-                context,
-                'Full Name',
-                _currentSettings.userName,
-              ),
-              child: Text(
-                _currentSettings.userName,
-                style: AppTypography.h2.copyWith(
-                  color: AppColors.surface,
-                  fontWeight: FontWeight.w900,
-                ),
+                  _buildStatsRow(),
+                ],
               ),
             ),
-            Text(
-              'ahmad@gmail.com',
-              style: AppTypography.caption.copyWith(
-                color: AppColors.surface.withValues(alpha: 0.5),
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: 32),
-            _buildStatsRow(),
           ],
         ),
       ),
