@@ -1,10 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kharcha/core/sync_state.dart';
 import 'package:kharcha/data/local_key_value_store.dart';
 import 'package:kharcha/models/app_settings.dart';
 import 'package:kharcha/models/transaction.dart';
 import 'package:kharcha/models/transaction_draft.dart';
 import 'package:kharcha/repositories/app_settings_repository.dart';
 import 'package:kharcha/repositories/transaction_repository.dart';
+import 'package:kharcha/services/local_backend_services.dart';
 import 'package:kharcha/utils/category_utils.dart';
 
 class _MemoryStore implements LocalKeyValueStore {
@@ -87,6 +89,98 @@ void main() {
     expect(reloaded.transactions.map((tx) => tx.id), originalOrder);
   });
 
+  test(
+    'undo after a completed remote delete queues a Firestore upsert',
+    () async {
+      final repository = TransactionRepository(
+        store: _MemoryStore(),
+        idGenerator: () => 'tx-1',
+      );
+      await repository.load();
+      final transaction = await repository.saveDraft(_draft());
+      await repository.mapRemoteId(
+        localId: transaction.id,
+        remoteId: transaction.id,
+      );
+
+      await repository.delete(transaction.id);
+      await repository.completeRemoteDelete(transaction.id);
+
+      expect(await repository.undoDelete(), isTrue);
+      final restored = repository.transactions.single;
+      expect(restored.id, transaction.id);
+      expect(restored.remoteId, transaction.id);
+      expect(restored.syncState, SyncState.pendingUpdate);
+      expect(repository.pendingSync, [restored]);
+    },
+  );
+
+  test(
+    'undo during a pending remote delete restores one queued upsert',
+    () async {
+      final repository = TransactionRepository(
+        store: _MemoryStore(),
+        idGenerator: () => 'tx-1',
+      );
+      await repository.load();
+      final transaction = await repository.saveDraft(_draft());
+      await repository.mapRemoteId(
+        localId: transaction.id,
+        remoteId: transaction.id,
+      );
+
+      await repository.delete(transaction.id);
+      expect(await repository.undoDelete(), isTrue);
+
+      expect(repository.transactions, hasLength(1));
+      expect(repository.transactions.single.syncState, SyncState.pendingUpdate);
+      await repository.completeRemoteDelete(transaction.id);
+      expect(repository.transactions, hasLength(1));
+    },
+  );
+
+  test(
+    'an older remote update does not replace the local transaction',
+    () async {
+      final repository = TransactionRepository(
+        store: _MemoryStore(),
+        idGenerator: () => 'tx-1',
+      );
+      await repository.load();
+      final created = await repository.saveDraft(
+        _draft(merchant: 'Local lunch'),
+      );
+      await repository.mapRemoteId(localId: created.id, remoteId: created.id);
+
+      await repository.mergeRemote(
+        repository.transactions.single.copyWith(
+          merchant: 'Old remote lunch',
+          updatedAt: DateTime.utc(2020),
+        ),
+      );
+
+      expect(repository.transactions.single.merchant, 'Local lunch');
+    },
+  );
+
+  test('a remote tombstone removes an older local transaction', () async {
+    final repository = TransactionRepository(
+      store: _MemoryStore(),
+      idGenerator: () => 'tx-1',
+    );
+    await repository.load();
+    final created = await repository.saveDraft(_draft());
+    await repository.mapRemoteId(localId: created.id, remoteId: created.id);
+
+    await repository.mergeRemote(
+      repository.transactions.single.copyWith(
+        deletedAt: DateTime.now().toUtc().add(const Duration(minutes: 1)),
+      ),
+    );
+
+    expect(repository.transactions, isEmpty);
+  });
+
   test('dining transactions roll up into the food category group', () async {
     final store = _MemoryStore();
     var nextId = 0;
@@ -115,6 +209,7 @@ void main() {
     await repository.update(
       repository.settings.copyWith(
         userName: 'Ahmad',
+        profileEmail: 'ahmad@example.com',
         monthlyBudget: 50000,
         currencySymbol: 'Rs.',
         selectedCategories: ['Dining', 'Transport', 'Shopping'],
@@ -130,6 +225,7 @@ void main() {
       reloaded.settings,
       const AppSettings(
         userName: 'Ahmad',
+        profileEmail: 'ahmad@example.com',
         monthlyBudget: 50000,
         currencySymbol: 'Rs.',
         selectedCategories: ['Dining', 'Transport', 'Shopping'],
@@ -138,4 +234,32 @@ void main() {
       ),
     );
   });
+
+  test(
+    'local auth service supports the Firebase auth contract shape',
+    () async {
+      final auth = LocalAuthService();
+
+      expect((await auth.restoreSession()).isAuthenticated, isFalse);
+
+      final emailSession = await auth.signInWithEmail(
+        email: 'ahmad@example.com',
+        password: 'password123',
+      );
+
+      expect(emailSession.isAuthenticated, isTrue);
+      expect(emailSession.email, 'ahmad@example.com');
+
+      final signedOut = await auth.signOut();
+      expect(signedOut.isAuthenticated, isFalse);
+
+      final anonymousSession = await auth.signInAnonymously();
+      expect(anonymousSession.isAuthenticated, isTrue);
+      expect(anonymousSession.userId, startsWith('local-anonymous-'));
+
+      final googleSession = await auth.signInWithGoogle();
+      expect(googleSession.isAuthenticated, isTrue);
+      expect(googleSession.userId, 'local-google-user');
+    },
+  );
 }

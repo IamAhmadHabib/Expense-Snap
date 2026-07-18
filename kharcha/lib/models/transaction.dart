@@ -18,6 +18,8 @@ class Transaction {
   final AppFailure? syncFailure;
   final List<String> attachmentIds;
   final DateTime? lastSyncedAt;
+  final DateTime? updatedAt;
+  final DateTime? deletedAt;
 
   Transaction({
     required this.id,
@@ -34,6 +36,8 @@ class Transaction {
     this.syncFailure,
     this.attachmentIds = const [],
     this.lastSyncedAt,
+    this.updatedAt,
+    this.deletedAt,
   });
 
   bool get needsSync => syncState.needsSync;
@@ -53,9 +57,12 @@ class Transaction {
     AppFailure? syncFailure,
     List<String>? attachmentIds,
     DateTime? lastSyncedAt,
+    DateTime? updatedAt,
+    DateTime? deletedAt,
     bool clearRemoteId = false,
     bool clearSyncFailure = false,
     bool clearLastSyncedAt = false,
+    bool clearDeletedAt = false,
   }) {
     return Transaction(
       id: id ?? this.id,
@@ -74,6 +81,8 @@ class Transaction {
       lastSyncedAt: clearLastSyncedAt
           ? null
           : lastSyncedAt ?? this.lastSyncedAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: clearDeletedAt ? null : deletedAt ?? this.deletedAt,
     );
   }
 
@@ -92,6 +101,8 @@ class Transaction {
     'syncFailure': syncFailure?.toJson(),
     'attachmentIds': attachmentIds,
     'lastSyncedAt': lastSyncedAt?.toIso8601String(),
+    'updatedAt': updatedAt?.toIso8601String(),
+    'deletedAt': deletedAt?.toIso8601String(),
   };
 
   factory Transaction.fromJson(Map<String, dynamic> json) {
@@ -124,6 +135,12 @@ class Transaction {
       lastSyncedAt: json['lastSyncedAt'] == null
           ? null
           : DateTime.parse(json['lastSyncedAt'] as String),
+      updatedAt: json['updatedAt'] == null
+          ? null
+          : DateTime.parse(json['updatedAt'] as String),
+      deletedAt: json['deletedAt'] == null
+          ? null
+          : DateTime.parse(json['deletedAt'] as String),
     );
   }
 }

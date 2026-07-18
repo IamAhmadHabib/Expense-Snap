@@ -8,9 +8,10 @@ tags: [tasks, open]
 
 ## Priority
 
-- Implement Firebase-backed `AuthService`, `TransactionSyncService`, and `AttachmentService` behind the Phase C contracts.
-- Add Firebase project configuration/packages for Android and iOS.
-- Decide account/session behavior after sign-in, sign-out, and reinstall.
+- Enable Email/Password sign-in provider in Firebase Console for `kharcha-expense-snap` if not already enabled.
+- Implement Firebase Storage-backed `AttachmentService` behind the Phase C contract.
+- Enable Firebase intentionally during integration testing with `--dart-define=KHARCHA_FIREBASE_ENABLED=true`.
+- Verify a clean reinstall restores transactions plus profile/settings for a Google-authenticated user.
 - Wire real Gemini voice parsing into `ExpenseCaptureAdapter<VoiceCaptureInput>`.
 - Wire real OCR/ML Kit scanning into `ExpenseCaptureAdapter<OcrCaptureInput>`.
 - Replace remaining placeholder analytics active-stat/insight logic with derived local data.

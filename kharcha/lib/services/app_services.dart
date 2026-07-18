@@ -3,12 +3,24 @@ import '../core/app_session.dart';
 import '../core/attachment_state.dart';
 import '../core/permission_state.dart';
 import '../models/transaction.dart';
+import '../models/app_settings.dart';
 import 'capture_adapters.dart';
 import 'local_backend_services.dart';
 
 abstract class AuthService {
   AppSession get currentSession;
   Future<AppSession> restoreSession();
+  Future<AppSession> signInAnonymously();
+  Future<AppSession> signInWithGoogle();
+  Future<AppSession> signInWithEmail({
+    required String email,
+    required String password,
+  });
+  Future<AppSession> createAccountWithEmail({
+    required String email,
+    required String password,
+    String? displayName,
+  });
   Future<AppSession> signOut();
 }
 
@@ -29,11 +41,17 @@ class SyncReport {
   final int attempted;
   final int succeeded;
   final List<AppFailure> failures;
+  final Map<String, String> remoteIds;
+  final List<String> deletedLocalIds;
+  final Map<String, AppFailure> failuresByLocalId;
 
   const SyncReport({
     required this.attempted,
     required this.succeeded,
     this.failures = const [],
+    this.remoteIds = const {},
+    this.deletedLocalIds = const [],
+    this.failuresByLocalId = const {},
   });
 
   bool get hasFailures => failures.isNotEmpty;
@@ -41,6 +59,9 @@ class SyncReport {
 
 abstract class TransactionSyncService {
   Future<SyncReport> pushPending(Iterable<Transaction> transactions);
+  Future<List<Transaction>> pullTransactions();
+  Future<void> pushSettings(AppSettings settings);
+  Future<AppSettings?> pullSettings();
 }
 
 class AppServices {
@@ -68,6 +89,20 @@ class AppServices {
       voiceParser: SimulatedVoiceExpenseParser(),
       ocrParser: SimulatedOcrExpenseParser(),
       sync: LocalNoopSyncService(),
+    );
+  }
+
+  factory AppServices.withAuth(
+    AuthService auth, {
+    TransactionSyncService? sync,
+  }) {
+    return AppServices(
+      auth: auth,
+      permissions: LocalPermissionService(),
+      attachments: LocalAttachmentService(),
+      voiceParser: SimulatedVoiceExpenseParser(),
+      ocrParser: SimulatedOcrExpenseParser(),
+      sync: sync ?? LocalNoopSyncService(),
     );
   }
 }

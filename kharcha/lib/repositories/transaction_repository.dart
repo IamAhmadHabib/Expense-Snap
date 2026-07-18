@@ -32,6 +32,8 @@ abstract class TransactionRepositoryContract implements Listenable {
     required String localId,
     required AppFailure failure,
   });
+  Future<void> completeRemoteDelete(String localId);
+  Future<void> mergeRemote(Transaction transaction);
 }
 
 class TransactionRepository extends ChangeNotifier
@@ -130,6 +132,7 @@ class TransactionRepository extends ChangeNotifier
                 ? SyncState.pendingCreate
                 : SyncState.pendingUpdate),
       lastSyncedAt: existing?.lastSyncedAt,
+      updatedAt: DateTime.now().toUtc(),
     );
     if (existingIndex == -1) {
       _transactions.add(transaction);
@@ -148,11 +151,14 @@ class TransactionRepository extends ChangeNotifier
     if (index == -1) return;
     _lastDeleted = _DeletedTransaction(_transactions[index], index);
     final transaction = _transactions[index];
+    final deletedAt = DateTime.now().toUtc();
     if (transaction.remoteId == null) {
       _transactions.removeAt(index);
     } else {
       _transactions[index] = transaction.copyWith(
         syncState: SyncState.pendingDelete,
+        updatedAt: deletedAt,
+        deletedAt: deletedAt,
         clearSyncFailure: true,
       );
     }
@@ -164,10 +170,30 @@ class TransactionRepository extends ChangeNotifier
   Future<bool> undoDelete() async {
     final deleted = _lastDeleted;
     if (deleted == null) return false;
-    _transactions.insert(
-      deleted.index.clamp(0, _transactions.length),
-      deleted.transaction,
+    // A remote delete may already have completed by the time the user taps
+    // Undo. Restore the same stable document ID and queue an upsert so the
+    // transaction is recreated in Firestore as well as locally.
+    final restored = deleted.transaction.copyWith(
+      syncState: deleted.transaction.remoteId == null
+          ? SyncState.pendingCreate
+          : SyncState.pendingUpdate,
+      clearSyncFailure: true,
+      clearDeletedAt: true,
+      updatedAt: DateTime.now().toUtc(),
     );
+    final pendingDeleteIndex = _transactions.indexWhere(
+      (transaction) =>
+          transaction.id == deleted.transaction.id &&
+          transaction.syncState == SyncState.pendingDelete,
+    );
+    if (pendingDeleteIndex == -1) {
+      _transactions.insert(
+        deleted.index.clamp(0, _transactions.length),
+        restored,
+      );
+    } else {
+      _transactions[pendingDeleteIndex] = restored;
+    }
     _lastDeleted = null;
     _sort();
     await _persist();
@@ -200,10 +226,65 @@ class TransactionRepository extends ChangeNotifier
   }) async {
     final index = _transactions.indexWhere((item) => item.id == localId);
     if (index == -1) return;
-    _transactions[index] = _transactions[index].copyWith(
-      syncState: SyncState.failed,
+    final existing = _transactions[index];
+    _transactions[index] = existing.copyWith(
+      // Retain the pending operation so a failed delete is retried as a delete,
+      // rather than accidentally being written back as an expense.
+      syncState: existing.syncState.needsSync
+          ? existing.syncState
+          : SyncState.failed,
       syncFailure: failure,
     );
+    await _persist();
+    notifyListeners();
+  }
+
+  @override
+  Future<void> completeRemoteDelete(String localId) async {
+    final index = _transactions.indexWhere((item) => item.id == localId);
+    if (index == -1) return;
+    if (_transactions[index].syncState != SyncState.pendingDelete) return;
+    _transactions.removeAt(index);
+    await _persist();
+    notifyListeners();
+  }
+
+  @override
+  Future<void> mergeRemote(Transaction transaction) async {
+    final index = _transactions.indexWhere((item) => item.id == transaction.id);
+    final local = index == -1 ? null : _transactions[index];
+    if (transaction.deletedAt != null) {
+      if (local == null) return;
+      final localUpdatedAt = local.updatedAt;
+      if (local.needsSync &&
+          localUpdatedAt != null &&
+          localUpdatedAt.isAfter(transaction.deletedAt!)) {
+        return;
+      }
+      _transactions.removeAt(index);
+      await _persist();
+      notifyListeners();
+      return;
+    }
+    if (local != null && local.needsSync) return;
+    if (local != null &&
+        local.updatedAt != null &&
+        transaction.updatedAt != null &&
+        !transaction.updatedAt!.isAfter(local.updatedAt!)) {
+      return;
+    }
+    final synced = transaction.copyWith(
+      remoteId: transaction.remoteId ?? transaction.id,
+      syncState: SyncState.synced,
+      lastSyncedAt: DateTime.now(),
+      clearSyncFailure: true,
+    );
+    if (index == -1) {
+      _transactions.add(synced);
+    } else {
+      _transactions[index] = synced;
+    }
+    _sort();
     await _persist();
     notifyListeners();
   }

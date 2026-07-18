@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../theme/app_colors.dart';
@@ -5,6 +7,8 @@ import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
 import 'login_screen.dart';
 import '../onboarding/personalization_flow.dart';
+import '../dashboard/dashboard_screen.dart';
+import '../../repositories/repository_scope.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -16,6 +20,8 @@ class AuthScreen extends StatefulWidget {
 class _AuthScreenState extends State<AuthScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _staggerController;
+  bool _isGoogleSigningIn = false;
+  String? _googleError;
 
   @override
   void initState() {
@@ -51,6 +57,31 @@ class _AuthScreenState extends State<AuthScreen>
         curve: Interval(start, end, curve: Curves.easeOutQuart),
       ),
     );
+  }
+
+  Future<void> _continueWithGoogle() async {
+    if (_isGoogleSigningIn) return;
+    setState(() {
+      _isGoogleSigningIn = true;
+      _googleError = null;
+    });
+    try {
+      await RepositoryScope.of(context).services.auth.signInWithGoogle();
+      if (mounted) {
+        unawaited(RepositoryScope.of(context).sync?.syncNow());
+      }
+      if (!mounted) return;
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const DashboardScreen()),
+        (_) => false,
+      );
+    } catch (_) {
+      if (mounted) {
+        setState(() => _googleError = 'Google sign-in could not be completed.');
+      }
+    } finally {
+      if (mounted) setState(() => _isGoogleSigningIn = false);
+    }
   }
 
   @override
@@ -153,14 +184,7 @@ class _AuthScreenState extends State<AuthScreen>
                   child: Column(
                     children: [
                       _buildSocialButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const PersonalizationFlow(),
-                            ),
-                          );
-                        },
+                        onPressed: _continueWithGoogle,
                         logo: Image.asset(
                           'assets/images/google_logo.png',
                           width: 24,
@@ -169,6 +193,16 @@ class _AuthScreenState extends State<AuthScreen>
                         customBgColor: AppColors.primary,
                         customTextColor: AppColors.surface,
                       ),
+                      if (_googleError != null) ...[
+                        const SizedBox(height: AppSpacing.sm),
+                        Text(
+                          _googleError!,
+                          style: AppTypography.bodySmall.copyWith(
+                            color: AppColors.danger,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
                       const SizedBox(height: AppSpacing.md),
                       _buildSocialButton(
                         onPressed: () {

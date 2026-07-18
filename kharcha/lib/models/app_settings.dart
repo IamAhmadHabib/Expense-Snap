@@ -1,5 +1,6 @@
 class AppSettings {
   final String userName;
+  final String profileEmail;
   final double monthlyBudget;
   final String currencySymbol;
   final List<String> selectedCategories;
@@ -13,6 +14,7 @@ class AppSettings {
 
   const AppSettings({
     this.userName = 'Ahmad',
+    this.profileEmail = '',
     this.monthlyBudget = 0,
     this.currencySymbol = 'Rs.',
     this.selectedCategories = const [],
@@ -27,6 +29,7 @@ class AppSettings {
 
   AppSettings copyWith({
     String? userName,
+    String? profileEmail,
     double? monthlyBudget,
     String? currencySymbol,
     List<String>? selectedCategories,
@@ -40,6 +43,7 @@ class AppSettings {
   }) {
     return AppSettings(
       userName: userName ?? this.userName,
+      profileEmail: profileEmail ?? this.profileEmail,
       monthlyBudget: monthlyBudget ?? this.monthlyBudget,
       currencySymbol: currencySymbol ?? this.currencySymbol,
       selectedCategories: selectedCategories ?? this.selectedCategories,
@@ -55,6 +59,7 @@ class AppSettings {
 
   Map<String, dynamic> toJson() => {
     'userName': userName,
+    'profileEmail': profileEmail,
     'monthlyBudget': monthlyBudget,
     'currencySymbol': currencySymbol,
     'selectedCategories': selectedCategories,
@@ -70,6 +75,7 @@ class AppSettings {
   factory AppSettings.fromJson(Map<String, dynamic> json) {
     return AppSettings(
       userName: json['userName'] as String? ?? 'Ahmad',
+      profileEmail: json['profileEmail'] as String? ?? '',
       monthlyBudget: (json['monthlyBudget'] as num?)?.toDouble() ?? 0,
       currencySymbol: json['currencySymbol'] as String? ?? 'Rs.',
       selectedCategories:
@@ -91,6 +97,7 @@ class AppSettings {
   bool operator ==(Object other) {
     return other is AppSettings &&
         other.userName == userName &&
+        other.profileEmail == profileEmail &&
         other.monthlyBudget == monthlyBudget &&
         other.currencySymbol == currencySymbol &&
         _sameList(other.selectedCategories, selectedCategories) &&
@@ -106,6 +113,7 @@ class AppSettings {
   @override
   int get hashCode => Object.hash(
     userName,
+    profileEmail,
     monthlyBudget,
     currencySymbol,
     Object.hashAll(selectedCategories),

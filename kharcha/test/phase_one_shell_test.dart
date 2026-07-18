@@ -2,12 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kharcha/features/dashboard/dashboard_screen.dart';
 import 'package:kharcha/features/transactions/add_transaction_sheet.dart';
+import 'package:kharcha/models/transaction.dart';
+import 'package:kharcha/models/transaction_draft.dart';
+import 'package:kharcha/repositories/app_settings_repository.dart';
+import 'package:kharcha/repositories/repository_scope.dart';
+import 'package:kharcha/repositories/transaction_repository.dart';
+import 'package:kharcha/services/app_services.dart';
 import 'package:kharcha/theme/app_theme.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 Future<void> _pumpDashboard(
   WidgetTester tester, {
   Size size = const Size(390, 844),
+  TransactionRepository? transactions,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
@@ -17,10 +24,15 @@ Future<void> _pumpDashboard(
   await tester.pumpWidget(
     MaterialApp(
       theme: AppTheme.light,
-      home: const DashboardScreen(
-        initialBudget: 25000,
-        userName: 'Ahmad',
-        currencySymbol: 'Rs',
+      home: RepositoryScope(
+        transactions: transactions ?? TransactionRepository.inMemory(),
+        settings: AppSettingsRepository.inMemory(),
+        services: AppServices.local(),
+        child: const DashboardScreen(
+          initialBudget: 25000,
+          userName: 'Ahmad',
+          currencySymbol: 'Rs',
+        ),
       ),
     ),
   );
@@ -151,6 +163,12 @@ void main() {
     await tester.tap(find.text('Home'));
     await tester.pump(const Duration(milliseconds: 500));
 
+    await tester.drag(
+      find.byType(Scrollable).first,
+      const Offset(0, -220),
+    );
+    await tester.pump(const Duration(milliseconds: 300));
+
     await tester.tap(find.byKey(const ValueKey('top_spending_see_all')));
     await tester.pump(const Duration(milliseconds: 500));
     expect(find.text('History'), findsWidgets);
@@ -169,6 +187,26 @@ void main() {
       find.byKey(const ValueKey('top_spending_static_list')),
       findsOneWidget,
     );
+  });
+
+  testWidgets('weekly velocity card handles a full-height spending bar', (
+    tester,
+  ) async {
+    final transactions = TransactionRepository.inMemory();
+    await transactions.saveDraft(
+      TransactionDraft(
+        merchant: 'Medicine',
+        category: 'Health',
+        amount: 2300,
+        date: DateTime.now(),
+        method: 'Cash',
+        source: TransactionSource.manual,
+      ),
+    );
+
+    await _pumpDashboard(tester, transactions: transactions);
+
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('profile switch state survives bottom navigation changes', (

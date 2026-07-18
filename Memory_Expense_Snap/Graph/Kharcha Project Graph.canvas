@@ -7,7 +7,7 @@
 		{"id":"screens","type":"file","file":"02_Architecture/Feature Screens.md","x":-520,"y":60,"width":260,"height":100},
 		{"id":"features","type":"file","file":"05_Features/Transactions.md","x":0,"y":260,"width":260,"height":100},
 		{"id":"roadmap","type":"file","file":"07_Roadmap/Phase 2 Real Expense Flow.md","x":520,"y":60,"width":290,"height":100},
-		{"id":"tasks","type":"file","file":"09_Tasks/Open Tasks.md","x":520,"y":260,"width":260,"height":100},
+		{"id":"tasks","type":"file","file":"09_Tasks/Open Tasks.md","x":520,"y":260,"width":260,"height":330},
 		{"id":"decisions","type":"file","file":"08_Decisions/Decision Log.md","x":-520,"y":260,"width":260,"height":100},
 		{"id":"data","type":"file","file":"02_Architecture/Data Flow.md","x":0,"y":460,"width":260,"height":260},
 		{"id":"dashboard","type":"file","file":"04_Screens/Dashboard.md","x":-850,"y":-40,"width":240,"height":90},

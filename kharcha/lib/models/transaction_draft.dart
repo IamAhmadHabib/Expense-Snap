@@ -43,6 +43,7 @@ class TransactionDraft {
     String? remoteId,
     SyncState syncState = SyncState.pendingCreate,
     DateTime? lastSyncedAt,
+    DateTime? updatedAt,
   }) {
     if (amount <= 0) {
       throw ArgumentError.value(amount, 'amount', 'must be greater than zero');
@@ -61,6 +62,7 @@ class TransactionDraft {
       syncState: syncState,
       attachmentIds: attachmentIds,
       lastSyncedAt: lastSyncedAt,
+      updatedAt: updatedAt,
     );
   }
 }

@@ -1,0 +1,35 @@
+{
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "kharcha-expense-snap",
+          "appId": "1:292863323201:android:9546dd978bf00251c0eac0",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "ios": {
+        "default": {
+          "projectId": "kharcha-expense-snap",
+          "appId": "1:292863323201:ios:14650d3f513e114ec0eac0",
+          "fileOutput": "ios/Runner/GoogleService-Info.plist"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "kharcha-expense-snap",
+          "configurations": {
+            "android": "1:292863323201:android:9546dd978bf00251c0eac0",
+            "ios": "1:292863323201:ios:14650d3f513e114ec0eac0",
+            "macos": "1:292863323201:ios:14650d3f513e114ec0eac0",
+            "web": "1:292863323201:web:620308e60c334d30c0eac0",
+            "windows": "1:292863323201:web:7ce07e99bb596c8bc0eac0"
+          }
+        }
+      }
+    }
+  }
+}

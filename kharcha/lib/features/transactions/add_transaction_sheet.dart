@@ -203,10 +203,12 @@ class _AddTransactionSheetState extends State<AddTransactionSheet>
     if (_isSaving || draft.amount <= 0) return;
     HapticFeedback.mediumImpact();
     setState(() => _isSaving = true);
+    final sync = RepositoryScope.maybeOf(context)?.sync;
     final saved = await _repository.saveDraft(
       draft,
       transactionId: widget.transaction?.id,
     );
+    unawaited(sync?.syncNow());
     if (mounted) Navigator.pop(context, saved);
   }
 

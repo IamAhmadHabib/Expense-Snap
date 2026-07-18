@@ -836,7 +836,7 @@ class _DashboardScreenState extends State<DashboardScreen>
         child: Container(
           width: double.infinity,
           height:
-              190, // Increased height to precisely accommodate texts without overflowing
+              210, // Keeps the 48px action target plus full-height weekly bars inside the card.
           padding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.lg,
             vertical: AppSpacing.md,

@@ -105,8 +105,13 @@ class _ProfileScreenState extends State<ProfileScreen>
     setState(_syncLocalSettings);
   }
 
-  Future<void> _updateSettings(AppSettings settings) {
-    return _settingsRepository.update(settings);
+  Future<void> _updateSettings(AppSettings settings) async {
+    await _settingsRepository.update(settings);
+    if (mounted) {
+      unawaited(
+        RepositoryScope.maybeOf(context)?.sync?.syncNow(settingsChanged: true),
+      );
+    }
   }
 
   AppSettings get _currentSettings => _settingsRepository.settings;
@@ -154,7 +159,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                               _settingsRow(
                                 PhosphorIcons.envelope(),
                                 'Email',
-                                'ahmad@gmail.com',
+                                _currentSettings.profileEmail.isEmpty
+                                    ? 'Not connected'
+                                    : _currentSettings.profileEmail,
                                 isTappable: false,
                               ),
                             ],

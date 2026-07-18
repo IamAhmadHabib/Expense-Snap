@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "292863323201",
+    "project_id": "kharcha-expense-snap",
+    "storage_bucket": "kharcha-expense-snap.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:292863323201:android:9546dd978bf00251c0eac0",
+        "android_client_info": {
+          "package_name": "com.kharcha.kharcha"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "292863323201-0nnonanps134agp4fugboiaemcha8in7.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.kharcha.kharcha",
+            "certificate_hash": "e93baecfa5cbd16b72d6d0cc43a316f25cb0f48f"
+          }
+        },
+        {
+          "client_id": "292863323201-ldks0d272tnfa90ubdm6plqrlt0p1thq.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCav9ILH-TFGGuTiFMPq4U4ecp4TC68rsI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "292863323201-ldks0d272tnfa90ubdm6plqrlt0p1thq.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "292863323201-ent1f8njsf7v8t0c47icuiie3cn65tok.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.kharcha.kharcha"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

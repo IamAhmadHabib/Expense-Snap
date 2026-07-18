@@ -1,4 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import '../../features/dashboard/dashboard_screen.dart';
+import '../../repositories/repository_scope.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
@@ -15,6 +19,8 @@ class _LoginScreenState extends State<LoginScreen>
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
+  bool _isSubmitting = false;
+  String? _errorMessage;
   late AnimationController _staggerController;
 
   @override
@@ -52,6 +58,48 @@ class _LoginScreenState extends State<LoginScreen>
         curve: Interval(start, end, curve: Curves.easeOutQuart),
       ),
     );
+  }
+
+  Future<void> _submitLogin() async {
+    if (_isSubmitting) return;
+    FocusScope.of(context).unfocus();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+
+    if (email.isEmpty || password.isEmpty) {
+      setState(() {
+        _errorMessage = 'Enter your email and password to continue.';
+      });
+      return;
+    }
+
+    setState(() {
+      _isSubmitting = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final services = RepositoryScope.of(context).services;
+      await services.auth.signInWithEmail(email: email, password: password);
+      if (mounted) {
+        unawaited(RepositoryScope.of(context).sync?.syncNow());
+      }
+      if (!mounted) return;
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const DashboardScreen()),
+        (route) => false,
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage =
+            'Could not log in. Please check your email and password.';
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
   }
 
   @override
@@ -153,6 +201,16 @@ class _LoginScreenState extends State<LoginScreen>
                           ),
                         ),
                       ),
+                      if (_errorMessage != null) ...[
+                        const SizedBox(height: AppSpacing.sm),
+                        Text(
+                          _errorMessage!,
+                          style: AppTypography.caption.copyWith(
+                            color: AppColors.danger,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -354,9 +412,20 @@ class _LoginScreenState extends State<LoginScreen>
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () {},
+          onTap: _isSubmitting ? null : _submitLogin,
           borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-          child: Center(child: Text('Log In', style: AppTypography.label)),
+          child: Center(
+            child: _isSubmitting
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: AppColors.textOnPrimary,
+                    ),
+                  )
+                : Text('Log In', style: AppTypography.label),
+          ),
         ),
       ),
     );

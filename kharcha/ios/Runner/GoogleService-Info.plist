@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>API_KEY</key>
+	<string>AIzaSyCfeoYF4O9CnzKV11-v0j69CZ9VhC9ozZ0</string>
+	<key>GCM_SENDER_ID</key>
+	<string>292863323201</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.kharcha.kharcha</string>
+	<key>PROJECT_ID</key>
+	<string>kharcha-expense-snap</string>
+	<key>STORAGE_BUCKET</key>
+	<string>kharcha-expense-snap.firebasestorage.app</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:292863323201:ios:14650d3f513e114ec0eac0</string>
+</dict>
+</plist>

@@ -14,6 +14,8 @@ Completed polish pass:
 - Dashboard Top Spending "See all" now routes to [[History]].
 - Dashboard Top Spending now shows up to five static vertical capsules in the main page scroll, with the rest reachable through [[History]] via "See all".
 - Compact-width Analytics overflow fixes were added for 390px mobile layouts.
+- [[Onboarding]] now uses transparent production PNGs with coordinated overlapping transitions, input locking, responsive sizing, preserved swipe/navigation behavior, image precaching, accessibility semantics, and reduced-motion support.
+- Legacy onboarding phone/mockup widgets and obsolete checkerboard/illustration assets were removed after reference checks.
 - Analyzer is clean and the Flutter test suite passes after this pass.
 
 Still pending for true launch readiness:

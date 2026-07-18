@@ -18,6 +18,7 @@ Connected behavior:
 - Top Spending "See all" opens [[History]].
 - Top Spending cards now render as up to five static vertical capsules in the main Dashboard page scroll instead of using an internal horizontal or vertical carousel.
 - The extra internal bottom spacer under Top Spending was removed; the main screen still keeps bottom padding for the floating dock.
+- Weekly velocity card height now accommodates the 48px analytics action target plus a full-height real spending bar without RenderFlex overflow.
 - Dashboard now uses a cached page-based retained tab shell for smoother navigation instead of laying out all major tabs on every tab switch.
 - Tab page widgets are cached between dock taps, adjacent tabs are implicitly warmed, and already-built tab pages use keep-alive wrappers so repeat navigation does not reconstruct the full screen.
 - Major Dashboard cards are wrapped in repaint isolation to reduce unnecessary repaint work during navigation and repository updates.
@@ -29,8 +30,8 @@ Performance note:
 
 Current data gaps:
 
-- Budget, weekly velocity, and top-spending values are hardcoded.
-- Budget/spend data should come from [[Transactions]].
+- Budget planning still needs richer real-budget behavior beyond the local monthly budget value.
+- Backend sync is still pending; current Dashboard spend summaries come from the local transaction repository.
 
 Related:
 

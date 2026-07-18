@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:kharcha/theme/app_colors.dart';
@@ -30,6 +32,7 @@ class _HistoryScreenState extends State<HistoryScreen>
   final Set<String> _activeFilters = {'All'};
   String? _expandedId;
   final Set<String> _collapsedGroups = {};
+  final Set<String> _dismissedTransactionIds = {};
 
   final List<String> _filterOptions = [
     'All',
@@ -93,6 +96,8 @@ class _HistoryScreenState extends State<HistoryScreen>
 
   List<Transaction> _getFilteredTransactions() {
     return _allTransactions.where((tx) {
+      if (_dismissedTransactionIds.contains(tx.id)) return false;
+
       // 1. Search Filter (Always applies)
       final matchesSearch =
           tx.merchant.toLowerCase().contains(_searchQuery.toLowerCase()) ||
@@ -574,7 +579,15 @@ class _HistoryScreenState extends State<HistoryScreen>
           child: Dismissible(
             key: Key(tx.id),
             direction: DismissDirection.endToStart,
-            onDismissed: (_) => _deleteTransaction(tx.id),
+            onDismissed: (_) {
+              // Dismissible requires the row to leave this build immediately.
+              // Repository persistence and cloud sync can safely finish after.
+              setState(() {
+                _dismissedTransactionIds.add(tx.id);
+                _expandedId = null;
+              });
+              unawaited(_deleteTransaction(tx.id));
+            },
             background: Container(
               alignment: Alignment.centerRight,
               padding: const EdgeInsets.only(right: 24),
@@ -965,7 +978,9 @@ class _HistoryScreenState extends State<HistoryScreen>
 
   Future<void> _deleteTransaction(String id) async {
     HapticFeedback.mediumImpact();
+    final sync = RepositoryScope.maybeOf(context)?.sync;
     await _repository.delete(id);
+    unawaited(sync?.syncNow());
     if (!mounted) return;
     setState(() => _expandedId = null);
 
@@ -982,7 +997,13 @@ class _HistoryScreenState extends State<HistoryScreen>
         action: SnackBarAction(
           label: 'Undo',
           textColor: AppColors.textOnPrimary,
-          onPressed: () => _repository.undoDelete(),
+          onPressed: () async {
+            await _repository.undoDelete();
+            if (mounted) {
+              setState(() => _dismissedTransactionIds.remove(id));
+              unawaited(RepositoryScope.maybeOf(context)?.sync?.syncNow());
+            }
+          },
         ),
       ),
     );

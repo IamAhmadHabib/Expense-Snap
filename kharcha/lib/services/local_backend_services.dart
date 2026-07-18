@@ -2,17 +2,64 @@ import '../core/app_session.dart';
 import '../core/attachment_state.dart';
 import '../core/permission_state.dart';
 import '../models/transaction.dart';
+import '../models/app_settings.dart';
 import 'app_services.dart';
 import 'capture_adapters.dart';
 
 class LocalAuthService implements AuthService {
   AppSession _session = const AppSession.signedOut();
+  int _nextAnonymousId = 0;
 
   @override
   AppSession get currentSession => _session;
 
   @override
   Future<AppSession> restoreSession() async {
+    return _session;
+  }
+
+  @override
+  Future<AppSession> signInAnonymously() async {
+    _session = AppSession.anonymous('local-anonymous-${++_nextAnonymousId}');
+    return _session;
+  }
+
+  @override
+  Future<AppSession> signInWithGoogle() async {
+    _session = AppSession.signedIn(
+      userId: 'local-google-user',
+      email: 'google-user@local.kharcha',
+      displayName: 'Google User',
+    );
+    return _session;
+  }
+
+  @override
+  Future<AppSession> signInWithEmail({
+    required String email,
+    required String password,
+  }) async {
+    _session = AppSession.signedIn(
+      userId: 'local-email-${email.trim().toLowerCase()}',
+      email: email.trim(),
+      displayName: email.trim().split('@').first,
+    );
+    return _session;
+  }
+
+  @override
+  Future<AppSession> createAccountWithEmail({
+    required String email,
+    required String password,
+    String? displayName,
+  }) async {
+    _session = AppSession.signedIn(
+      userId: 'local-email-${email.trim().toLowerCase()}',
+      email: email.trim(),
+      displayName: displayName?.trim().isEmpty ?? true
+          ? email.trim().split('@').first
+          : displayName!.trim(),
+    );
     return _session;
   }
 
@@ -130,4 +177,13 @@ class LocalNoopSyncService implements TransactionSyncService {
     final pending = transactions.where((transaction) => transaction.needsSync);
     return SyncReport(attempted: pending.length, succeeded: 0);
   }
+
+  @override
+  Future<List<Transaction>> pullTransactions() async => const [];
+
+  @override
+  Future<void> pushSettings(AppSettings settings) async {}
+
+  @override
+  Future<AppSettings?> pullSettings() async => null;
 }
