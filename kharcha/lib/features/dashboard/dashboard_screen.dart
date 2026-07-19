@@ -1320,7 +1320,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                 ),
               ),
 
-              // The fixed Kharcha capture coin.
+              // The fixed Kharcha add tile.
               Positioned(
                 bottom:
                     25, // Extends proudly above the visual edge of the glass pill
@@ -1352,85 +1352,34 @@ class _DashboardScreenState extends State<DashboardScreen>
                       scale: _isAddPressed ? 0.94 : 1,
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 200),
-                        width: _isSheetOpen ? 70 : 68,
-                        height: _isSheetOpen ? 70 : 68,
+                        width: _isSheetOpen ? 66 : 64,
+                        height: _isSheetOpen ? 66 : 64,
                         decoration: BoxDecoration(
                           gradient: const LinearGradient(
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
-                            colors: [
-                              AppColors.accentLight,
-                              AppColors.accent,
-                              AppColors.accentDeep,
-                            ],
-                            stops: [0, 0.46, 1],
+                            colors: [AppColors.accent, AppColors.amberGold],
                           ),
-                          shape: BoxShape.circle,
+                          borderRadius: BorderRadius.circular(
+                            _isSheetOpen ? 23 : 21,
+                          ),
                           border: Border.all(
-                            color: AppColors.surface.withValues(alpha: 0.78),
-                            width: 1.6,
+                            color: AppColors.primary.withValues(alpha: 0.08),
+                            width: 1,
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: AppColors.primary.withValues(alpha: 0.22),
-                              blurRadius: 18,
-                              offset: const Offset(0, 8),
-                            ),
-                            BoxShadow(
-                              color: AppColors.accentDeep.withValues(
-                                alpha: 0.16,
-                              ),
-                              blurRadius: 24,
-                              offset: const Offset(0, 10),
+                              color: AppColors.primary.withValues(alpha: 0.2),
+                              blurRadius: 16,
+                              offset: const Offset(0, 7),
                             ),
                           ],
                         ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(7),
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [
-                                  AppColors.primary,
-                                  AppColors.headerCard,
-                                ],
-                              ),
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: AppColors.accentLight.withValues(
-                                  alpha: 0.24,
-                                ),
-                                width: 0.8,
-                              ),
-                            ),
-                            child: Stack(
-                              alignment: Alignment.center,
-                              children: [
-                                Positioned.fill(
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(4),
-                                    child: DecoratedBox(
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        border: Border.all(
-                                          color: AppColors.accent.withValues(
-                                            alpha: 0.14,
-                                          ),
-                                          width: 0.8,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                AnimatedRotation(
-                                  duration: const Duration(milliseconds: 300),
-                                  turns: _isSheetOpen ? 0.125 : 0,
-                                  child: const _KharchaAddMark(),
-                                ),
-                              ],
-                            ),
+                        child: Center(
+                          child: AnimatedRotation(
+                            duration: const Duration(milliseconds: 300),
+                            turns: _isSheetOpen ? 0.125 : 0,
+                            child: const _KharchaAddMark(),
                           ),
                         ),
                       ),
@@ -1483,23 +1432,23 @@ class _KharchaAddMark extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const barDecoration = BoxDecoration(
-      color: AppColors.primaryLight,
+      color: AppColors.primary,
       borderRadius: BorderRadius.all(Radius.circular(99)),
     );
 
     return const SizedBox.square(
-      dimension: 27,
+      dimension: 29,
       child: Stack(
         alignment: Alignment.center,
         children: [
           SizedBox(
-            width: 27,
-            height: 4,
+            width: 29,
+            height: 4.5,
             child: DecoratedBox(decoration: barDecoration),
           ),
           SizedBox(
-            width: 4,
-            height: 27,
+            width: 4.5,
+            height: 29,
             child: DecoratedBox(decoration: barDecoration),
           ),
         ],
