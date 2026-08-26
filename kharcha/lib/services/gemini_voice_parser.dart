@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 
+import '../config/env_keys.dart';
 import '../models/transaction.dart';
 import '../models/transaction_draft.dart';
 import 'capture_adapters.dart';
@@ -25,14 +26,18 @@ class GeminiVoiceExpenseParser
     if (key != null && key.trim().isNotEmpty) {
       return key.trim();
     }
-    return const String.fromEnvironment('GEMINI_API_KEY');
+    const envKey = String.fromEnvironment('GEMINI_API_KEY');
+    if (envKey.trim().isNotEmpty) {
+      return envKey.trim();
+    }
+    return EnvKeys.geminiApiKey;
   }
 
   bool get hasApiKey => effectiveApiKey.isNotEmpty;
 
   GenerativeModel _getModel() {
     return _model ??= GenerativeModel(
-      model: 'gemini-1.5-flash',
+      model: 'gemini-2.5-flash',
       apiKey: effectiveApiKey,
       generationConfig: GenerationConfig(
         responseMimeType: 'application/json',
