@@ -8,6 +8,7 @@ import '../repositories/app_settings_repository.dart';
 import '../repositories/transaction_repository.dart';
 import '../services/app_services.dart';
 import '../services/firebase_backend_services.dart';
+import '../services/firebase_storage_service.dart';
 import '../services/firestore_sync_service.dart';
 import '../services/app_sync_coordinator.dart';
 
@@ -58,6 +59,7 @@ class KharchaBootstrap {
     final services = useFirebaseServices
         ? AppServices.withAuth(
             FirebaseAuthService(),
+            attachments: FirebaseStorageAttachmentService(),
             sync: FirestoreTransactionSyncService(),
           )
         : AppServices.local();

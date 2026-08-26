@@ -2,8 +2,8 @@ import '../core/app_failure.dart';
 import '../core/app_session.dart';
 import '../core/attachment_state.dart';
 import '../core/permission_state.dart';
-import '../models/transaction.dart';
 import '../models/app_settings.dart';
+import '../models/transaction.dart';
 import 'capture_adapters.dart';
 import 'local_backend_services.dart';
 
@@ -31,6 +31,21 @@ abstract class PermissionService {
 
 abstract class AttachmentService {
   Future<AttachmentReference> prepareLocalAttachment(AttachmentInput input);
+  Future<AttachmentReference> uploadAttachment({
+    required AttachmentReference attachment,
+    List<int>? bytes,
+    String? userId,
+  });
+  Future<String?> getDownloadUrl({
+    required String attachmentId,
+    String? userId,
+    String? fileName,
+  });
+  Future<void> deleteAttachment({
+    required String attachmentId,
+    String? userId,
+    String? fileName,
+  });
   Future<AttachmentReference> markUploaded({
     required String id,
     required String remoteUrl,
@@ -94,12 +109,13 @@ class AppServices {
 
   factory AppServices.withAuth(
     AuthService auth, {
+    AttachmentService? attachments,
     TransactionSyncService? sync,
   }) {
     return AppServices(
       auth: auth,
       permissions: LocalPermissionService(),
-      attachments: LocalAttachmentService(),
+      attachments: attachments ?? LocalAttachmentService(),
       voiceParser: SimulatedVoiceExpenseParser(),
       ocrParser: SimulatedOcrExpenseParser(),
       sync: sync ?? LocalNoopSyncService(),
