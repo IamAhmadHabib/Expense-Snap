@@ -96,12 +96,14 @@ class AppServices {
     required this.sync,
   });
 
-  factory AppServices.local() {
+  factory AppServices.local({
+    ExpenseCaptureAdapter<VoiceCaptureInput>? voiceParser,
+  }) {
     return AppServices(
       auth: LocalAuthService(),
       permissions: LocalPermissionService(),
       attachments: LocalAttachmentService(),
-      voiceParser: SimulatedVoiceExpenseParser(),
+      voiceParser: voiceParser ?? SimulatedVoiceExpenseParser(),
       ocrParser: SimulatedOcrExpenseParser(),
       sync: LocalNoopSyncService(),
     );
@@ -110,13 +112,14 @@ class AppServices {
   factory AppServices.withAuth(
     AuthService auth, {
     AttachmentService? attachments,
+    ExpenseCaptureAdapter<VoiceCaptureInput>? voiceParser,
     TransactionSyncService? sync,
   }) {
     return AppServices(
       auth: auth,
       permissions: LocalPermissionService(),
       attachments: attachments ?? LocalAttachmentService(),
-      voiceParser: SimulatedVoiceExpenseParser(),
+      voiceParser: voiceParser ?? SimulatedVoiceExpenseParser(),
       ocrParser: SimulatedOcrExpenseParser(),
       sync: sync ?? LocalNoopSyncService(),
     );

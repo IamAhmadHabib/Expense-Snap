@@ -64,11 +64,15 @@ Kharcha currently has a high-fidelity Flutter UI with a local-first, Firebase-sy
 - Profile currency picker now initializes from the persisted currency symbol, so changing to dollars opens the picker with USD selected.
 - Profile Log Out opens its existing confirmation sheet.
 - Feature colors use the central theme tokens, and Android, iOS, and web launch surfaces use the warm Kharcha background.
+- Phase 4 Firebase Storage attachment service (`FirebaseStorageAttachmentService`) is implemented and wired into `KharchaBootstrap` and `AppServices.withAuth`, with storage security rules configured in `storage.rules` and `firebase.json`.
+- Phase 5 Gemini AI voice logging (`GeminiVoiceExpenseParser`) and on-device speech-to-text (`SpeechRecognitionService`) are implemented and fully wired into `_VoiceTabView` in `AddTransactionSheet`, supporting Roman Urdu, Urdu, English, and Pakistani denominations with offline heuristic fallback.
 
 ## Current Gaps
 
 - Firebase remains intentionally opt-in through `--dart-define=KHARCHA_FIREBASE_ENABLED=true`; without it, the app remains local-only.
 - Storage, FCM, Gemini, and ML Kit OCR service implementations are not connected yet.
+- Gemini API key is configured via `--dart-define=GEMINI_API_KEY=...`; without it, the app uses the built-in multilingual heuristic parser seamlessly.
+- FCM push notifications and ML Kit OCR service implementations are not connected yet.
 - Analytics still has some secondary mock/placeholder intelligence copy and active-stat logic.
 - Further performance tuning should be guided by fresh DevTools recordings after this polish pass, especially on 120 Hz devices.
 - Golden tests, physical-device DevTools profiling, final app icons, full permissions copy, and store listing assets are still pending launch tasks.
@@ -78,3 +82,4 @@ Kharcha currently has a high-fidelity Flutter UI with a local-first, Firebase-sy
 ## Best Next Move
 
 Implement Firebase Storage-backed attachment upload behind the existing attachment contract.
+Proceed to Phase 6: Implement Google ML Kit on-device receipt OCR scanning behind the existing OCR capture adapter.

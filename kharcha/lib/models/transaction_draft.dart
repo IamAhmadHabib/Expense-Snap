@@ -38,6 +38,30 @@ class TransactionDraft {
     );
   }
 
+  TransactionDraft copyWith({
+    String? merchant,
+    String? category,
+    double? amount,
+    DateTime? date,
+    String? note,
+    String? method,
+    TransactionSource? source,
+    bool? isIncome,
+    List<String>? attachmentIds,
+  }) {
+    return TransactionDraft(
+      merchant: merchant ?? this.merchant,
+      category: category ?? this.category,
+      amount: amount ?? this.amount,
+      date: date ?? this.date,
+      note: note ?? this.note,
+      method: method ?? this.method,
+      source: source ?? this.source,
+      isIncome: isIncome ?? this.isIncome,
+      attachmentIds: attachmentIds ?? this.attachmentIds,
+    );
+  }
+
   Transaction toTransaction(
     String id, {
     String? remoteId,

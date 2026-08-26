@@ -8,6 +8,8 @@ import '../../models/transaction.dart';
 import '../../models/transaction_draft.dart';
 import '../../repositories/repository_scope.dart';
 import '../../repositories/transaction_repository.dart';
+import '../../services/capture_adapters.dart';
+import '../../services/speech_recognition_service.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 
@@ -1282,6 +1284,20 @@ class _VoiceTabViewState extends State<_VoiceTabView>
   bool _hasPermission = false;
   Timer? _hintTimer;
 
+  String _currentTranscript = '';
+  TransactionDraft _parsedDraft = TransactionDraft(
+    merchant: 'Burger',
+    category: 'Food & Dining',
+    amount: 300,
+    date: DateTime.now(),
+    note: 'Burger',
+    method: 'Cash',
+    source: TransactionSource.voice,
+  );
+  late TextEditingController _amountController;
+  late TextEditingController _noteController;
+  final SpeechRecognitionService _speechService = SpeechRecognitionService();
+
   late AnimationController _micBreathingController;
   late AnimationController _processingPulseController;
   late AnimationController _waveController;
@@ -1300,11 +1316,16 @@ class _VoiceTabViewState extends State<_VoiceTabView>
     'Maine 300 rupay burger pe kharch kiye',
     'Spent 1200 on Uber',
     '450 at Starbucks',
+    'Dhai sau petrol',
+    '5 hazar bijli ka bill pay kia',
   ];
 
   @override
   void initState() {
     super.initState();
+    _amountController = TextEditingController(text: '300');
+    _noteController = TextEditingController(text: 'Burger');
+
     _micBreathingController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 2500),
@@ -1352,6 +1373,9 @@ class _VoiceTabViewState extends State<_VoiceTabView>
   @override
   void dispose() {
     _hintTimer?.cancel();
+    _amountController.dispose();
+    _noteController.dispose();
+    _speechService.cancelListening();
     _micBreathingController.dispose();
     _processingPulseController.dispose();
     _waveController.dispose();
@@ -1360,37 +1384,81 @@ class _VoiceTabViewState extends State<_VoiceTabView>
     super.dispose();
   }
 
-  void _toggleListening() {
+  Future<void> _toggleListening() async {
     HapticFeedback.mediumImpact();
-    setState(() {
-      if (_state == _VoiceState.idle || _state == _VoiceState.error) {
+    if (_state == _VoiceState.idle || _state == _VoiceState.error) {
+      setState(() {
         _state = _VoiceState.listening;
-        _simulateVoiceCapture();
-      } else if (_state == _VoiceState.listening) {
-        _startProcessing();
-      }
-    });
-  }
-
-  void _simulateVoiceCapture() {
-    Future.delayed(const Duration(milliseconds: 3500), () {
-      if (!mounted || _state != _VoiceState.listening) return;
+        _currentTranscript = '';
+      });
+      _startVoiceCapture();
+    } else if (_state == _VoiceState.listening) {
+      await _speechService.stopListening();
       _startProcessing();
-    });
+    }
   }
 
-  void _startProcessing() {
+  Future<void> _startVoiceCapture() async {
+    final hasSpeech = await _speechService.initialize();
+    if (hasSpeech && mounted && _state == _VoiceState.listening) {
+      await _speechService.startListening(
+        onResult: (words) {
+          if (!mounted) return;
+          setState(() {
+            _currentTranscript = words;
+          });
+        },
+      );
+    } else {
+      if (_currentTranscript.isEmpty) {
+        _currentTranscript = _hints[_hintIndex];
+      }
+      Future.delayed(const Duration(milliseconds: 2500), () {
+        if (mounted && _state == _VoiceState.listening) {
+          _startProcessing();
+        }
+      });
+    }
+  }
+
+  Future<void> _startProcessing() async {
     setState(() {
       _state = _VoiceState.processing;
       _step1Card = _step2Amount = _step3Category = _step4Note = _step5Date =
           _step6Complete = false;
     });
 
+    final transcript = _currentTranscript.trim().isNotEmpty
+        ? _currentTranscript.trim()
+        : _hints[_hintIndex];
+
+    try {
+      final scope = RepositoryScope.maybeOf(context);
+      if (scope != null) {
+        final result = await scope.services.voiceParser.parse(
+          VoiceCaptureInput(transcript: transcript),
+        );
+        if (mounted) {
+          _parsedDraft = result.draft;
+          _amountController.text = _parsedDraft.amount > 0
+              ? (_parsedDraft.amount % 1 == 0
+                  ? _parsedDraft.amount.toInt().toString()
+                  : _parsedDraft.amount.toStringAsFixed(2))
+              : '0';
+          _noteController.text = _parsedDraft.note;
+        }
+      }
+    } catch (_) {}
+
+    if (!mounted) return;
+
     _cardAssemblyController.reset();
     _cardAssemblyController.forward();
 
     // Staggered sequence strictly per spec
-    Future.delayed(Duration.zero, () => setState(() => _step1Card = true));
+    Future.delayed(Duration.zero, () {
+      if (mounted) setState(() => _step1Card = true);
+    });
 
     // Step 2 — Amount row (0ms – 400ms)
     Future.delayed(const Duration(milliseconds: 50), () {
@@ -1915,7 +1983,11 @@ class _VoiceTabViewState extends State<_VoiceTabView>
                                   ),
                                 ),
                                 _TypingText(
-                                  text: '300',
+                                  text: _parsedDraft.amount > 0
+                                      ? (_parsedDraft.amount % 1 == 0
+                                          ? _parsedDraft.amount.toInt().toString()
+                                          : _parsedDraft.amount.toStringAsFixed(2))
+                                      : '0',
                                   style: AppTypography.h2.copyWith(
                                     fontWeight: FontWeight.w900,
                                     color: AppColors.warmCharcoal,
@@ -1947,8 +2019,8 @@ class _VoiceTabViewState extends State<_VoiceTabView>
 
                   // Row 2: Category
                   _assemblyRow(
-                    PhosphorIcons.hamburger(PhosphorIconsStyle.fill),
-                    'Food & Dining',
+                    PhosphorIcons.tag(PhosphorIconsStyle.fill),
+                    _parsedDraft.category,
                     _step3Category,
                     true,
                   ),
@@ -1957,7 +2029,9 @@ class _VoiceTabViewState extends State<_VoiceTabView>
                   // Row 3: Note
                   _assemblyRow(
                     PhosphorIcons.note(PhosphorIconsStyle.fill),
-                    'Burger',
+                    _parsedDraft.note.isNotEmpty
+                        ? _parsedDraft.note
+                        : _parsedDraft.merchant,
                     _step4Note,
                     false,
                   ),
@@ -1966,7 +2040,7 @@ class _VoiceTabViewState extends State<_VoiceTabView>
                   // Row 4: Date
                   _assemblyRow(
                     PhosphorIcons.calendar(PhosphorIconsStyle.fill),
-                    'Today, 2:45 PM',
+                    DateFormat('MMM d, h:mm a').format(_parsedDraft.date),
                     _step5Date,
                     false,
                   ),
@@ -2064,7 +2138,7 @@ class _VoiceTabViewState extends State<_VoiceTabView>
                     ? SizedBox(
                         width: 220,
                         child: TextField(
-                          controller: TextEditingController(text: '300'),
+                          controller: _amountController,
                           keyboardType: TextInputType.number,
                           textAlign: TextAlign.center,
                           style: AppTypography.h1.copyWith(
@@ -2112,7 +2186,7 @@ class _VoiceTabViewState extends State<_VoiceTabView>
                         ),
                       )
                     : Text(
-                        'Rs. 300',
+                        'Rs. ${_parsedDraft.amount > 0 ? (_parsedDraft.amount % 1 == 0 ? _parsedDraft.amount.toInt().toString() : _parsedDraft.amount.toStringAsFixed(2)) : '0'}',
                         style: AppTypography.h1.copyWith(
                           fontSize: 48,
                           fontWeight: FontWeight.w900,
@@ -2131,7 +2205,7 @@ class _VoiceTabViewState extends State<_VoiceTabView>
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    'Food & Dining',
+                    _parsedDraft.category,
                     style: AppTypography.caption.copyWith(
                       fontWeight: FontWeight.w700,
                       color: AppColors.accent,
@@ -2145,20 +2219,40 @@ class _VoiceTabViewState extends State<_VoiceTabView>
           const SizedBox(height: 32),
 
           // ── Details ──
-          _detailRow(
-            PhosphorIcons.notepad(PhosphorIconsStyle.fill),
-            'Note',
-            'Burger',
-          ),
+          _state == _VoiceState.correcting
+              ? Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: TextField(
+                    controller: _noteController,
+                    decoration: InputDecoration(
+                      labelText: 'Note / Merchant',
+                      labelStyle: AppTypography.caption,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                    ),
+                  ),
+                )
+              : _detailRow(
+                  PhosphorIcons.notepad(PhosphorIconsStyle.fill),
+                  'Note',
+                  _parsedDraft.note.isNotEmpty
+                      ? _parsedDraft.note
+                      : _parsedDraft.merchant,
+                ),
           _detailRow(
             PhosphorIcons.calendar(PhosphorIconsStyle.fill),
             'Date',
-            'Today, 2:45 PM',
+            DateFormat('MMM d, h:mm a').format(_parsedDraft.date),
           ),
           _detailRow(
             PhosphorIcons.wallet(PhosphorIconsStyle.fill),
             'Account',
-            'Cash',
+            _parsedDraft.method,
           ),
 
           const SizedBox(height: 16),
@@ -2181,7 +2275,9 @@ class _VoiceTabViewState extends State<_VoiceTabView>
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Maine 300 rupay burger pe kharch kiye',
+                    _currentTranscript.isNotEmpty
+                        ? _currentTranscript
+                        : _hints[_hintIndex],
                     style: AppTypography.caption.copyWith(
                       color: AppColors.primary.withValues(alpha: 0.4),
                       fontStyle: FontStyle.italic,
@@ -2234,17 +2330,19 @@ class _VoiceTabViewState extends State<_VoiceTabView>
               Expanded(
                 flex: 2,
                 child: GestureDetector(
-                  onTap: () => widget.onSave(
-                    TransactionDraft(
-                      merchant: 'Burger',
-                      category: 'Dining',
-                      amount: 300,
-                      date: DateTime.now(),
-                      note: 'Burger',
-                      method: 'Cash',
-                      source: TransactionSource.voice,
-                    ),
-                  ),
+                  onTap: () {
+                    final enteredAmount =
+                        double.tryParse(_amountController.text.trim());
+                    final finalDraft = _parsedDraft.copyWith(
+                      amount: enteredAmount != null && enteredAmount > 0
+                          ? enteredAmount
+                          : _parsedDraft.amount,
+                      note: _noteController.text.trim().isNotEmpty
+                          ? _noteController.text.trim()
+                          : _parsedDraft.note,
+                    );
+                    widget.onSave(finalDraft);
+                  },
                   child: Container(
                     height: 56,
                     decoration: BoxDecoration(

@@ -8,6 +8,8 @@ import '../repositories/app_settings_repository.dart';
 import '../repositories/transaction_repository.dart';
 import '../services/app_services.dart';
 import '../services/firebase_backend_services.dart';
+import '../services/firebase_storage_service.dart';
+import '../services/gemini_voice_parser.dart';
 import '../services/firestore_sync_service.dart';
 import '../services/app_sync_coordinator.dart';
 
@@ -55,12 +57,15 @@ class KharchaBootstrap {
   }) async {
     final transactions = TransactionRepository(store: store);
     final settings = AppSettingsRepository(store: store);
+    final voiceParser = GeminiVoiceExpenseParser();
     final services = useFirebaseServices
         ? AppServices.withAuth(
             FirebaseAuthService(),
+            attachments: FirebaseStorageAttachmentService(),
+            voiceParser: voiceParser,
             sync: FirestoreTransactionSyncService(),
           )
-        : AppServices.local();
+        : AppServices.local(voiceParser: voiceParser);
     final session = await services.auth.restoreSession();
 
     await Future.wait([transactions.load(), settings.load()]);

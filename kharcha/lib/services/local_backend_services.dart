@@ -106,9 +106,48 @@ class LocalAttachmentService implements AttachmentService {
       localPath: input.localPath,
       kind: input.kind,
       state: AttachmentState.localOnly,
+      fileName: input.effectiveFileName,
+      contentType: input.effectiveContentType,
     );
     _attachments[attachment.id] = attachment;
     return attachment;
+  }
+
+  @override
+  Future<AttachmentReference> uploadAttachment({
+    required AttachmentReference attachment,
+    List<int>? bytes,
+    String? userId,
+  }) async {
+    final uid = userId ?? 'local-user';
+    final fileName = attachment.fileName ?? 'attachment';
+    final remoteUrl =
+        'https://local.storage.kharcha/users/$uid/attachments/${attachment.id}/$fileName';
+    final uploaded = attachment.copyWith(
+      state: AttachmentState.uploaded,
+      remoteUrl: remoteUrl,
+      clearFailure: true,
+    );
+    _attachments[attachment.id] = uploaded;
+    return uploaded;
+  }
+
+  @override
+  Future<String?> getDownloadUrl({
+    required String attachmentId,
+    String? userId,
+    String? fileName,
+  }) async {
+    return _attachments[attachmentId]?.remoteUrl;
+  }
+
+  @override
+  Future<void> deleteAttachment({
+    required String attachmentId,
+    String? userId,
+    String? fileName,
+  }) async {
+    _attachments.remove(attachmentId);
   }
 
   @override
@@ -123,6 +162,7 @@ class LocalAttachmentService implements AttachmentService {
     final uploaded = existing.copyWith(
       state: AttachmentState.uploaded,
       remoteUrl: remoteUrl,
+      clearFailure: true,
     );
     _attachments[id] = uploaded;
     return uploaded;
