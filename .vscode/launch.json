@@ -1,0 +1,20 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Kharcha (Local)",
+      "request": "launch",
+      "type": "dart",
+      "cwd": "kharcha"
+    },
+    {
+      "name": "Kharcha (Firebase Enabled)",
+      "request": "launch",
+      "type": "dart",
+      "cwd": "kharcha",
+      "args": [
+        "--dart-define=KHARCHA_FIREBASE_ENABLED=true"
+      ]
+    }
+  ]
+}
