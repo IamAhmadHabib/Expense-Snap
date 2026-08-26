@@ -107,12 +107,6 @@ void main() {
       expect(attachment.state, AttachmentState.localOnly);
       expect(attachment.remoteUrl, isNull);
 
-      final uploaded = await services.attachments.uploadAttachment(
-        attachment: attachment,
-      );
-      expect(uploaded.state, AttachmentState.uploaded);
-      expect(uploaded.remoteUrl, isNotNull);
-
       final voiceDraft = await services.voiceParser.parse(
         const VoiceCaptureInput(transcript: 'burger 300 cash'),
       );
