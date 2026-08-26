@@ -1,29 +1,29 @@
 ---
 type: architecture
-status: planned
+status: in-progress
 tags: [backend, roadmap]
 ---
 
 # Backend Roadmap
 
-Backend is planned but not implemented. The frontend now has Phase C contracts and local fake services ready for backend integration.
+Backend foundation (Phase 1 Auth & Phase 2 Firestore sync) is implemented behind Phase C service contracts.
 
-Target backend:
+Backend status:
 
 - [[Firebase Architecture]]
-- Firebase Auth.
-- Firestore.
-- Firebase Storage.
-- Firebase Cloud Messaging.
-- Gemini API.
-- ML Kit OCR.
-- Google Sheets API.
-- CSV/PDF export.
+- Firebase Auth (Google OAuth & Email/Password) — **Implemented**.
+- Firestore transaction and settings sync (LWW conflict resolution & tombstones) — **Implemented**.
+- Firebase Storage for receipts/attachments — **Planned (Next)**.
+- Firebase Cloud Messaging for alerts/insights — **Planned**.
+- Gemini API for voice parsing — **Planned**.
+- ML Kit OCR for receipt/screenshot scanning — **Planned**.
+- Google Sheets API sync — **Planned**.
+- CSV/PDF export — **Planned**.
 
 Frontend readiness already added:
 
 - `AuthService` and session routing via `KharchaBootstrap`.
-- `TransactionSyncService` contract plus transaction sync metadata.
+- `TransactionSyncService` contract with `FirestoreTransactionSyncService` implementation.
 - `AttachmentService` contract for local and future uploaded attachments.
 - `PermissionService` contract for microphone/camera/photos/notifications.
 - Voice and OCR parser adapter contracts with correction workflow models.

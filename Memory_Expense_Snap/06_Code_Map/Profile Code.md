@@ -12,11 +12,12 @@ Source:
 kharcha/lib/features/profile/profile_screen.dart
 ```
 
-Current shell note: retained Dashboard tab children preserve Profile's in-memory toggle state, and Log Out opens the existing confirmation sheet. Durable settings and confirmed auth logout remain future work.
+Current shell note: Profile binds directly to `AppSettingsRepository` and `TransactionRepository`. Name, budget, currency, reset day, language, and notification settings persist durably and trigger background sync. Confirmed Log Out executes `AuthService.signOut()` and resets navigation to Onboarding.
 
 Related:
 
 - [[Profile]]
 - [[Profile Settings]]
 - [[Budgeting]]
+- [[Firebase Architecture]]
 - [[Design Debt]]

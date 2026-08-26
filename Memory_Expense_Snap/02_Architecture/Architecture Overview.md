@@ -6,13 +6,15 @@ tags: [architecture, overview]
 
 # Architecture Overview
 
-Current app: Flutter UI shell under `kharcha/`.
+Current app: Local-first Flutter architecture with optional Firebase cloud sync under `kharcha/`.
 
-Current limitation: screens own local/mock state instead of sharing one data spine.
+Implemented architecture:
 
-Target architecture:
+[[Feature Screens]] → `RepositoryScope` → `TransactionRepository` & `AppSettingsRepository` → `LocalKeyValueStore` (SharedPreferences / InMemory) + `AppSyncCoordinator` (`FirestoreTransactionSyncService` / Local fake).
 
-[[Feature Screens]] → controllers/viewmodels → repositories → local cache and remote services.
+Next target:
+
+Firebase Storage attachment uploads, Gemini Voice integration, and ML Kit OCR parsing behind the existing service contracts.
 
 Related:
 

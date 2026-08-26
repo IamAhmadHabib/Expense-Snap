@@ -1,6 +1,6 @@
 ---
 type: screen-section
-status: ui-built-data-pending
+status: connected
 tags: [manual, transactions]
 ---
 
@@ -8,9 +8,11 @@ tags: [manual, transactions]
 
 Fast manual entry path with amount, category, date/time, payment method, note, and save button.
 
-Next required link: save through [[Repository Plan]] into [[Transactions]].
+Implemented flow: saves through [[Repository Plan]] into [[Transactions]] via `TransactionRepository.saveDraft(...)` and updates Dashboard/History/Analytics immediately.
 
 Related:
 
 - [[Add Transaction]]
+- [[Transactions]]
+- [[Repository Plan]]
 - [[Phase 2 Real Expense Flow]]

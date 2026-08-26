@@ -1,23 +1,24 @@
 ---
 type: feature
-status: ui-built-state-pending
+status: implemented-local-and-firestore
 tags: [profile, settings]
 ---
 
 # Profile Settings
 
-Profile settings need persistent state.
+Profile settings are durably persisted in `AppSettingsRepository` and synchronized to Firestore.
 
 Includes:
 
-- Name/email.
-- Budget.
-- Currency.
-- Notification toggles.
-- Language/dark mode.
+- Name & profile email (hydrated from Firebase Auth session).
+- Monthly Budget & Reset Day.
+- Currency selection.
+- Notification toggles (Weekly digest, Budget alerts, Spending insights, Daily reminder).
+- Language & dark mode preferences.
 
 Related:
 
 - [[Profile]]
 - [[Budgeting]]
+- [[Firebase Architecture]]
 - [[Phase 3 Profile Budget State]]

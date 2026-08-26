@@ -1,6 +1,6 @@
 ---
 type: screen
-status: ui-built-needs-data
+status: repository-connected
 tags: [screen, transactions]
 ---
 
@@ -14,12 +14,13 @@ Tabs:
 - [[Scan Tab]]
 - [[Manual Tab]]
 
-Confirmed live-code gaps:
+Implemented live-code capabilities:
 
-- Manual save waits and closes with `true` but does not build or save a `Transaction`.
-- Voice permission, capture, parsing, and result data are simulated; Voice save closes without returning a saved transaction result.
-- Scan permission, capture, OCR, and extracted result data are simulated; Scan save closes the sheets without building or saving a transaction.
-- Edit mode pre-fills fields but History does not receive or apply an updated transaction.
+- Manual save builds a `TransactionDraft` and persists via `_repository.saveDraft(...)`.
+- Voice save flows through `_saveDraft` to create a `TransactionDraft` and persists into `TransactionRepository`.
+- Scan save flows through `_saveDraft` to create a `TransactionDraft` and persists into `TransactionRepository`.
+- Edit mode pre-fills existing transaction values and updates the existing `Transaction` in `TransactionRepository`.
+- Any save or edit instantly triggers `AppSyncCoordinator.syncNow()` in the background if Firebase is active.
 
 Connected shell behavior:
 
@@ -31,9 +32,13 @@ Connected shell behavior:
 - Capture pages are built through a lazy `PageView.builder`, wrapped in repaint isolation, and inactive capture pages have tickers disabled so Voice/Scan animation work does not continue while Manual is active.
 - Confirm Amount returns to the active tab page after closing the numpad, preserving the user's Manual/Voice/Scan context.
 
-All three capture modes need to produce the same transaction draft/save contract through [[Repository Plan]].
+Remaining integrations:
+
+- Connect real Gemini API for voice natural language parsing.
+- Connect real ML Kit / Google Cloud Vision for OCR receipt image parsing.
 
 Related:
 
 - [[Add Transaction Code]]
+- [[Repository Plan]]
 - [[Phase 2 Real Expense Flow]]

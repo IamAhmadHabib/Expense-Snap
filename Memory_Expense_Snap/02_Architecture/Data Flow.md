@@ -1,24 +1,24 @@
 ---
 type: architecture
-status: priority
+status: active
 tags: [data-flow, transactions]
 ---
 
 # Data Flow
 
-The app now has a shared local transaction data flow plus frontend contracts for backend sync and capture integrations.
+The app operates on a local-first transaction data flow with automatic background synchronization via `AppSyncCoordinator`.
 
-Current prepared flow:
+Current data flow:
 
 ```mermaid
 flowchart LR
-  A["Add Transaction"] --> B["Transaction Repository"]
-  B --> C["Dashboard"]
-  B --> D["History"]
-  B --> E["Analytics"]
-  B --> F["Local Cache"]
-  B --> G["Sync Service Contract"]
-  G --> H["Firestore later"]
+  A["Add Transaction Sheet"] --> B["Transaction Repository"]
+  B --> C["Dashboard Screen"]
+  B --> D["History Screen"]
+  B --> E["Analytics Screen"]
+  B --> F["Local Cache (SharedPreferences)"]
+  B --> G["AppSyncCoordinator"]
+  G --> H["Firestore (when Firebase enabled)"]
   I["Voice/OCR Adapter Contracts"] --> A
   J["Attachment Service Contract"] --> B
 ```
@@ -30,5 +30,6 @@ Related:
 - [[Transactions]]
 - [[Repository Plan]]
 - [[State Management]]
+- [[Firebase Architecture]]
 - [[Phase 2 Real Expense Flow]]
 - [[Transaction Model]]

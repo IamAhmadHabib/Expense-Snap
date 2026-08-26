@@ -1,6 +1,6 @@
 ---
 type: screen
-status: ui-built
+status: repository-connected
 tags: [screen, profile]
 ---
 
@@ -10,22 +10,27 @@ Profile and settings screen.
 
 Includes:
 
-- Fixed `My Profile` header with a compact inset charcoal identity/stat card. The header uses the same top SafeArea pattern as Analytics so its title clears the system status bar before the card begins. Profile settings cards use compact rows; the App card keeps a small top/bottom inset around its first and last rows.
-- Personal info.
-- Budget settings.
-- Currency.
-- Notification toggles.
-- App settings.
-- Logout/Delete Account.
+- Fixed `My Profile` header with a compact inset charcoal identity/stat card.
+- Personal info (Name, Email synchronized from Firebase Auth/local session).
+- Budget settings (Monthly budget, Reset day, Categories).
+- Currency selection.
+- Notification toggles (Weekly digest, Budget alerts, Spending insights, Daily reminder).
+- App settings (Language, Dark Mode toggle, Rating, Feedback, Version).
+- Logout confirmation & Danger Zone.
 
-Confirmed live-code gaps:
+Implemented live-code capabilities:
 
-- Header identity/email and stats are repository-backed. The email is synchronized from Firebase Auth through `AppSettingsRepository`.
-- Notification and dark-mode toggles are local in-memory state. They now survive Dashboard tab switches, but are not persisted across app restarts; dark mode does not change the app theme.
-- Edit name, budget, currency, category creation, language, rating, and feedback sheets do not return/apply durable values.
-- Avatar edit is haptic-only. Confirmed Log Out now calls the shared `AuthService`, then clears navigation back to onboarding. Delete Forever has an empty callback.
-- Performance/lifecycle note: the delayed stats animation timer is now cancelled on dispose, and the profile header plus main settings sections have repaint isolation.
-- Currency picker opens with the currently persisted currency selected instead of always defaulting to PKR.
+- Header identity, email, and stats are repository-backed (`AppSettingsRepository` & `TransactionRepository`).
+- Full Name, Monthly Budget, Budget Reset Day, Currency, Language, and Notification preferences are durably persisted in `AppSettingsRepository` and synced to Firestore.
+- Dark mode toggle updates persisted `AppSettings` (full dynamic theme switching is in progress).
+- Confirmed Log Out calls `AuthService.signOut()` and resets navigation back to Onboarding.
+- The delayed stats animation timer is lifecycle-safe (cancelled on dispose), and major cards use repaint isolation.
+- Currency picker opens initialized with the currently persisted currency.
+
+Remaining gaps:
+
+- Rating and Feedback actions open modals but do not dispatch store reviews or external emails yet.
+- Delete Forever action currently has an empty callback.
 
 Related:
 

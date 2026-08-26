@@ -1,18 +1,23 @@
 ---
 type: feature
-status: ui-built-state-pending
+status: implemented-local-and-firestore
 tags: [budget]
 ---
 
 # Budgeting
 
-Budget appears in Personalization, Dashboard, and Profile.
+Budget configuration appears in Personalization, Dashboard, and Profile.
 
-Needs persistent state and connection to transaction totals.
+Implemented:
+
+- Persistent monthly budget stored in `AppSettingsRepository` and synced to Firestore.
+- Connected to real-time transaction totals on the Dashboard (calculating spent amount, remaining balance, and burn rate).
+- Editable via Profile monthly budget sheet.
 
 Related:
 
 - [[Personalization]]
 - [[Dashboard]]
 - [[Profile]]
+- [[Firebase Architecture]]
 - [[Phase 3 Profile Budget State]]

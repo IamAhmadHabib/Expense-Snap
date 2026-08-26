@@ -10,13 +10,14 @@ See [[Current Snapshot]] for the current project truth.
 
 Summary:
 
-- UI is mostly built.
-- Backend is pending.
-- Real expense persistence is pending.
-- Design token cleanup is pending.
+- High-fidelity Flutter UI is fully built and connected.
+- Local-first data spine (`TransactionRepository`, `AppSettingsRepository`, `LocalKeyValueStore`) is complete.
+- Firebase Phase 1 (Auth: Email/Password & Google OAuth) and Phase 2 (Firestore real-time/offline sync with LWW and tombstone deletion) are implemented.
+- Storage attachments, Gemini Voice, ML Kit OCR, and export integrations remain planned.
 
 Related:
 
 - [[Architecture Overview]]
-- [[Design Debt]]
+- [[Firebase Architecture]]
+- [[Current Snapshot]]
 - [[Open Tasks]]

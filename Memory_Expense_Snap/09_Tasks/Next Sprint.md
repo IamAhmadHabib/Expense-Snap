@@ -8,15 +8,18 @@ tags: [sprint]
 
 Recommended sprint:
 
-1. Add Firebase packages/config for Android and iOS.
-2. Implement Firebase-backed `AuthService` behind the existing Phase C interface.
-3. Implement Firestore-backed transaction/settings sync using `remoteId`, `syncState`, and `syncFailure`.
-4. Implement Firebase Storage upload behind `AttachmentService`.
-5. Add integration tests using fake Firebase-style services before touching real network calls.
+1. Implement Firebase Storage upload behind `AttachmentService` contract for receipt images and voice notes.
+2. Integrate real Gemini API natural language parsing for the `VoiceCaptureInput` adapter.
+3. Integrate real ML Kit / Google Cloud Vision OCR for receipt and bill scanning.
+4. Replace remaining static/placeholder analytics statistics with real aggregated queries.
+5. Create golden widget and visual regression tests for core screens.
 
-Sprint outcome: local expenses can map to account-scoped remote records without changing the current UI design.
+Sprint outcome: voice and receipt capture become fully functional with AI parsing and media cloud storage.
 
 Related:
 
 - [[Open Tasks]]
 - [[Decision Log]]
+- [[Phase 4 Firebase Backend]]
+- [[Phase 5 Gemini Voice]]
+- [[Phase 6 OCR]]
