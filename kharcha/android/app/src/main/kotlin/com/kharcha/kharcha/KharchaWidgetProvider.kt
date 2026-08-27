@@ -26,11 +26,11 @@ class KharchaWidgetProvider : HomeWidgetProvider() {
                 setTextViewText(R.id.widget_today_count, todayCount)
                 setTextViewText(R.id.widget_currency_tag, currency)
 
-                // Voice Action (Deep Link: kharcha://capture/voice)
+                // Voice Action -> Native VoiceWidgetActivity (keeps the app closed!)
                 val voiceIntent = HomeWidgetLaunchIntent.getActivity(
                     context,
-                    MainActivity::class.java,
-                    Uri.parse("kharcha://capture/voice")
+                    VoiceWidgetActivity::class.java,
+                    null
                 )
                 setOnClickPendingIntent(R.id.widget_action_voice, voiceIntent)
 

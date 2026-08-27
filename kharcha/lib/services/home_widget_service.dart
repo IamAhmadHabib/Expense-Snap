@@ -33,6 +33,9 @@ class HomeWidgetService {
       );
 
       final count = todayTransactions.length;
+      final currency = settings.currencySymbol.isNotEmpty
+          ? settings.currencySymbol
+          : 'Rs.';
       final amountFormatted = NumberFormat.currency(
         symbol: '$currency ',
         decimalDigits: 0,

@@ -10,7 +10,6 @@ void main() {
     final transactions = [
       Transaction(
         id: 'tx-1',
-        title: 'Lunch',
         merchant: 'Lunch',
         amount: 450,
         category: 'Food & Dining',
@@ -20,7 +19,6 @@ void main() {
       ),
       Transaction(
         id: 'tx-2',
-        title: 'Salary',
         merchant: 'Salary',
         amount: 50000,
         category: 'Income',

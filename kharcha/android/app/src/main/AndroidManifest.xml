@@ -47,6 +47,27 @@
             </intent-filter>
         </activity>
 
+        <!-- Transparent Floating Voice Activity for Home Screen Widget -->
+        <activity
+            android:name=".VoiceWidgetActivity"
+            android:theme="@style/TransparentTheme"
+            android:exported="true"
+            android:launchMode="singleInstance"
+            android:excludeFromRecents="true"
+            android:windowSoftInputMode="adjustResize"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+            android:hardwareAccelerated="true">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="kharcha"
+                    android:host="widget"
+                    android:pathPrefix="/voice" />
+            </intent-filter>
+        </activity>
+
         <!-- Kharcha Home Screen AppWidget Receiver -->
         <receiver
             android:name=".KharchaWidgetProvider"

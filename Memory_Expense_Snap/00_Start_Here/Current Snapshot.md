@@ -26,6 +26,14 @@ Kharcha currently has a high-fidelity Flutter UI with a local-first, Firebase-sy
 
 ## Connected UI Shell
 
+- In-Widget Instant Voice Logging (Zero Full-App Launch):
+  - Tapping the widget's amber microphone invokes native `VoiceWidgetActivity`.
+  - Android displays the native voice recognition prompt directly above the home screen wallpaper.
+  - Spoken expense is parsed via `VoiceTransactionParser` (supporting English and colloquial Urdu denominations like derh sau, dhai sau, hazar, lakh).
+  - Transaction is appended directly to `FlutterSharedPreferences` (`flutter.kharcha.transactions.v1`).
+  - Today's spending total is recalculated and the home screen widget is updated in real time via `AppWidgetManager`.
+  - Toast confirmation appears right on the home screen (`✓ Added Rs. 350 for Burger`) and the activity closes instantly with no full app window opened.
+
 - Native Android Home Screen Widget (`KharchaWidgetProvider`) implemented via `home_widget: ^0.9.3`:
   - Visuals: Quiet luxury card layout with warm cream/white background, 24dp rounded corners, and branded "KHARCHA" header.
   - Glance metrics: Displays real-time today's total spending (e.g., `Rs 11,200`) and today's expense count (`4 expenses today`).

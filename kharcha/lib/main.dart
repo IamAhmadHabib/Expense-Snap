@@ -46,6 +46,7 @@ class KharchaApp extends StatelessWidget {
   final AppServices services;
   final AppSyncCoordinator? sync;
   final AppStartDestination startDestination;
+  final String? initialRoute;
 
   const KharchaApp({
     super.key,
@@ -54,10 +55,15 @@ class KharchaApp extends StatelessWidget {
     required this.services,
     this.sync,
     this.startDestination = AppStartDestination.onboarding,
+    this.initialRoute,
   });
 
   @override
   Widget build(BuildContext context) {
+    final effectiveRoute = initialRoute ??
+        WidgetsBinding.instance.platformDispatcher.defaultRouteName;
+    final isWidgetVoice = effectiveRoute == '/widget-voice';
+
     return RepositoryScope(
       transactions: transactions,
       settings: settings,
@@ -67,9 +73,11 @@ class KharchaApp extends StatelessWidget {
         title: 'Kharcha',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light,
-        home: startDestination == AppStartDestination.dashboard
-            ? const DashboardScreen()
-            : const OnboardingScreen(),
+        home: isWidgetVoice
+            ? const WidgetVoiceOverlayScreen()
+            : (startDestination == AppStartDestination.dashboard
+                ? const DashboardScreen()
+                : const OnboardingScreen()),
       ),
     );
   }
