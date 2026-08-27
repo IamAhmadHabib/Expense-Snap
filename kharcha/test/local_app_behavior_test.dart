@@ -19,6 +19,9 @@ class _MemoryStore implements LocalKeyValueStore {
   Future<void> setString(String key, String value) async {
     values[key] = value;
   }
+
+  @override
+  Future<void> reload() async {}
 }
 
 TransactionDraft _draft({

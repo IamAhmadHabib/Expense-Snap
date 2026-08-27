@@ -21,6 +21,9 @@ class _MemoryStore implements LocalKeyValueStore {
   Future<void> setString(String key, String value) async {
     _values[key] = value;
   }
+
+  @override
+  Future<void> reload() async {}
 }
 
 class _FakeSyncService implements TransactionSyncService {
