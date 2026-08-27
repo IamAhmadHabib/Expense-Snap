@@ -16,25 +16,6 @@ import 'theme/app_theme.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  final initialRoute =
-      WidgetsBinding.instance.platformDispatcher.defaultRouteName;
-  final isWidgetVoice = initialRoute == '/widget-voice';
-
-  if (isWidgetVoice) {
-    // Ultra-fast path: bypass Firebase startup & cloud sync, launch voice overlay in <10ms
-    final bootstrap = await KharchaBootstrap.local(useFirebaseServices: false);
-    runApp(
-      KharchaApp(
-        transactions: bootstrap.transactions,
-        settings: bootstrap.settings,
-        services: bootstrap.services,
-        startDestination: AppStartDestination.dashboard,
-        initialRoute: '/widget-voice',
-      ),
-    );
-    return;
-  }
-
   final firebase = await FirebaseBootstrap.initialize();
   final bootstrap = await KharchaBootstrap.local(
     useFirebaseServices: firebase.isInitialized,
@@ -114,6 +95,9 @@ class KharchaApp extends StatelessWidget {
             : (startDestination == AppStartDestination.dashboard
                 ? const DashboardScreen()
                 : const OnboardingScreen()),
+        routes: {
+          '/widget-voice': (context) => const WidgetVoiceOverlayScreen(),
+        },
       ),
     );
   }

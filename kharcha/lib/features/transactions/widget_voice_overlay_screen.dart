@@ -23,6 +23,9 @@ enum _OverlayVoiceState {
 
 class WidgetVoiceOverlayScreen extends StatefulWidget {
   const WidgetVoiceOverlayScreen({super.key});
+  final String? initialTranscript;
+
+  const WidgetVoiceOverlayScreen({super.key, this.initialTranscript});
 
   @override
   State<WidgetVoiceOverlayScreen> createState() => _WidgetVoiceOverlayScreenState();
@@ -49,6 +52,7 @@ class _WidgetVoiceOverlayScreenState extends State<WidgetVoiceOverlayScreen>
   @override
   void initState() {
     super.initState();
+    _currentTranscript = widget.initialTranscript ?? '';
     _parsedDraft = TransactionDraft(
       merchant: '',
       category: 'Food & Dining',
@@ -91,6 +95,9 @@ class _WidgetVoiceOverlayScreenState extends State<WidgetVoiceOverlayScreen>
 
     _slideController.forward();
     _initAndStartListening();
+    if (widget.initialTranscript == null) {
+      _initAndStartListening();
+    }
   }
 
   @override
@@ -199,9 +206,6 @@ class _WidgetVoiceOverlayScreenState extends State<WidgetVoiceOverlayScreen>
           draft.amount > 0 ? draft.amount.toStringAsFixed(0) : '';
       _merchantController.text =
           draft.merchant.isNotEmpty ? draft.merchant : 'Expense';
-          (draft.merchant.isNotEmpty && draft.merchant.toLowerCase() != 'expense')
-              ? draft.merchant
-              : (draft.category != 'Other' ? draft.category : '');
       HapticFeedback.lightImpact();
       setState(() => _state = _OverlayVoiceState.confirming);
     }
@@ -219,13 +223,8 @@ class _WidgetVoiceOverlayScreenState extends State<WidgetVoiceOverlayScreen>
     final finalMerchant = _merchantController.text.trim().isNotEmpty
         ? _merchantController.text.trim()
         : (_parsedDraft.merchant.isNotEmpty
-    final enteredMerchant = _merchantController.text.trim();
-    final finalMerchant = enteredMerchant.isNotEmpty
-        ? enteredMerchant
-        : ((_parsedDraft.merchant.isNotEmpty && _parsedDraft.merchant.toLowerCase() != 'expense')
             ? _parsedDraft.merchant
             : 'Expense');
-            : (_parsedDraft.category != 'Other' ? _parsedDraft.category : 'General'));
 
     final draftToSave = _parsedDraft.copyWith(
       amount: parsedAmount > 0 ? parsedAmount : 100.0,
@@ -587,11 +586,13 @@ class _WidgetVoiceOverlayScreenState extends State<WidgetVoiceOverlayScreen>
                 children: [
                   Text(
                     'Payment Method',
+                    'Method',
                     style: AppTypography.caption.copyWith(
                       color: AppColors.primary.withValues(alpha: 0.5),
                     ),
                   ),
                   Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       // Cash Pill
                       GestureDetector(
@@ -604,14 +605,16 @@ class _WidgetVoiceOverlayScreenState extends State<WidgetVoiceOverlayScreen>
                           duration: const Duration(milliseconds: 180),
                           padding: const EdgeInsets.symmetric(
                             horizontal: 12,
-                            horizontal: 14,
                             vertical: 6,
+                            horizontal: 10,
+                            vertical: 5,
                           ),
                           decoration: BoxDecoration(
                             color: _selectedMethod == 'Cash'
                                 ? AppColors.accent
                                 : AppColors.surface,
                             borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(10),
                             border: Border.all(
                               color: _selectedMethod == 'Cash'
                                   ? AppColors.accent
@@ -644,7 +647,7 @@ class _WidgetVoiceOverlayScreenState extends State<WidgetVoiceOverlayScreen>
                               fontWeight: _selectedMethod == 'Cash'
                                   ? FontWeight.w700
                                   : FontWeight.w500,
-                              fontSize: 13,
+                              fontSize: 12,
                             ),
                           ),
                         ),
@@ -661,14 +664,16 @@ class _WidgetVoiceOverlayScreenState extends State<WidgetVoiceOverlayScreen>
                           duration: const Duration(milliseconds: 180),
                           padding: const EdgeInsets.symmetric(
                             horizontal: 12,
-                            horizontal: 14,
                             vertical: 6,
+                            horizontal: 10,
+                            vertical: 5,
                           ),
                           decoration: BoxDecoration(
                             color: _selectedMethod == 'Card'
                                 ? AppColors.accent
                                 : AppColors.surface,
                             borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(10),
                             border: Border.all(
                               color: _selectedMethod == 'Card'
                                   ? AppColors.accent
@@ -701,7 +706,7 @@ class _WidgetVoiceOverlayScreenState extends State<WidgetVoiceOverlayScreen>
                               fontWeight: _selectedMethod == 'Card'
                                   ? FontWeight.w700
                                   : FontWeight.w500,
-                              fontSize: 13,
+                              fontSize: 12,
                             ),
                           ),
                         ),

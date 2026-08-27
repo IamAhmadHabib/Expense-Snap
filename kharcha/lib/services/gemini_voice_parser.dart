@@ -98,10 +98,8 @@ class GeminiVoiceExpenseParser
             confidence: confidence,
             draft: TransactionDraft(
               merchant: (merchant != null && merchant.isNotEmpty)
-              merchant: (merchant != null && merchant.isNotEmpty && merchant.toLowerCase() != 'expense')
                   ? merchant
                   : category,
-                  : (category != 'Other' ? category : 'General'),
               category: _normalizeCategory(category),
               amount: amount,
               date: DateTime.now(),
@@ -156,7 +154,6 @@ class GeminiVoiceExpenseParser
     // 3. Category & Merchant detection
     String category = 'Other';
     String merchant = 'Expense';
-    String merchant = 'General';
 
     if (lower.contains('uber') ||
         lower.contains('indrive') ||
