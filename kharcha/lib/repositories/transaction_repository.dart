@@ -100,7 +100,6 @@ class TransactionRepository extends ChangeNotifier
 
   @override
   Future<void> load() async {
-    await store.reload();
     _transactions.clear();
     final raw = store.getString(_storageKey);
     if (raw != null && raw.isNotEmpty) {

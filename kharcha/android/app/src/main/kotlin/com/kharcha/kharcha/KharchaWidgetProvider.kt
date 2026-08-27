@@ -1,12 +1,9 @@
 package com.kharcha.kharcha
 
-import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.content.Context
-import android.content.Intent
 import android.content.SharedPreferences
 import android.net.Uri
-import android.os.Build
 import android.widget.RemoteViews
 import es.antonborri.home_widget.HomeWidgetLaunchIntent
 import es.antonborri.home_widget.HomeWidgetPlugin
@@ -29,11 +26,11 @@ class KharchaWidgetProvider : HomeWidgetProvider() {
                 setTextViewText(R.id.widget_today_count, todayCount)
                 setTextViewText(R.id.widget_currency_tag, currency)
 
-                // Voice Action -> Instant Pre-warmed Voice Activity
+                // Voice Action (Deep Link: kharcha://capture/voice)
                 val voiceIntent = HomeWidgetLaunchIntent.getActivity(
                     context,
-                    VoiceWidgetActivity::class.java,
-                    null
+                    MainActivity::class.java,
+                    Uri.parse("kharcha://capture/voice")
                 )
                 setOnClickPendingIntent(R.id.widget_action_voice, voiceIntent)
 

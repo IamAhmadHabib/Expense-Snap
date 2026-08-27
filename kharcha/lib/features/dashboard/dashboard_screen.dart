@@ -35,7 +35,7 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen>
-    with TickerProviderStateMixin, WidgetsBindingObserver {
+    with TickerProviderStateMixin {
   late AnimationController _mainController;
   late Animation<double> _budgetCountAnimation;
 
@@ -130,18 +130,7 @@ class _DashboardScreenState extends State<DashboardScreen>
       duration: const Duration(milliseconds: 600),
     );
 
-    WidgetsBinding.instance.addObserver(this);
     _playTactileFeedback();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      if (_repositoriesInitialized) {
-        _transactions.load();
-        _settings.load();
-      }
-    }
   }
 
   void _playTactileFeedback() async {
@@ -152,7 +141,6 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
     _widgetClickSub?.cancel();
     if (_repositoriesInitialized) {
       _transactions.removeListener(_onRepositoryChanged);

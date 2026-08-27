@@ -12,7 +12,6 @@ import 'repositories/transaction_repository.dart';
 import 'services/app_services.dart';
 import 'services/app_sync_coordinator.dart';
 import 'theme/app_theme.dart';
-export 'voice_overlay_main.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

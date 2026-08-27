@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -34,7 +35,6 @@ class _WidgetVoiceOverlayScreenState extends State<WidgetVoiceOverlayScreen>
   final SpeechRecognitionService _speechService = SpeechRecognitionService();
   String _currentTranscript = '';
   double _soundLevel = 0.0;
-  String _selectedMethod = 'Cash';
 
   late TextEditingController _amountController;
   late TextEditingController _merchantController;
@@ -69,7 +69,7 @@ class _WidgetVoiceOverlayScreenState extends State<WidgetVoiceOverlayScreen>
 
     _slideController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 200),
+      duration: const Duration(milliseconds: 380),
     );
 
     _slideAnimation = Tween<Offset>(
@@ -125,9 +125,7 @@ class _WidgetVoiceOverlayScreenState extends State<WidgetVoiceOverlayScreen>
     final available = await _speechService.initialize(
       onError: (val) {
         if (mounted && _state == _OverlayVoiceState.listening) {
-          if (_currentTranscript.trim().isNotEmpty) {
-            _finishListening();
-          }
+          _finishListening();
         }
       },
       onStatus: (val) {
@@ -167,21 +165,7 @@ class _WidgetVoiceOverlayScreenState extends State<WidgetVoiceOverlayScreen>
     await _speechService.stopListening();
 
     if (_currentTranscript.trim().isEmpty) {
-      if (mounted) {
-        setState(() {
-          _parsedDraft = TransactionDraft(
-            merchant: 'General',
-            category: 'Food & Dining',
-            amount: 0,
-            date: DateTime.now(),
-            source: TransactionSource.voice,
-          );
-          _amountController.text = '';
-          _merchantController.text = '';
-          _selectedMethod = 'Cash';
-          _state = _OverlayVoiceState.confirming;
-        });
-      }
+      _dismissOverlay();
       return;
     }
 
@@ -208,9 +192,6 @@ class _WidgetVoiceOverlayScreenState extends State<WidgetVoiceOverlayScreen>
 
     if (mounted) {
       _parsedDraft = draft;
-      _selectedMethod = (draft.method.isNotEmpty && (draft.method.toLowerCase() == 'card' || draft.method.toLowerCase() == 'cash'))
-          ? (draft.method.toLowerCase() == 'card' ? 'Card' : 'Cash')
-          : 'Cash';
       _amountController.text =
           draft.amount > 0 ? draft.amount.toStringAsFixed(0) : '';
       _merchantController.text =
@@ -238,7 +219,6 @@ class _WidgetVoiceOverlayScreenState extends State<WidgetVoiceOverlayScreen>
     final draftToSave = _parsedDraft.copyWith(
       amount: parsedAmount > 0 ? parsedAmount : 100.0,
       merchant: finalMerchant,
-      method: _selectedMethod,
       note: _currentTranscript,
       source: TransactionSource.voice,
     );
@@ -278,13 +258,16 @@ class _WidgetVoiceOverlayScreenState extends State<WidgetVoiceOverlayScreen>
       backgroundColor: Colors.transparent,
       body: Stack(
         children: [
-          // 1. Semi-transparent backdrop / Outside tap to cancel
+          // 1. Transparent Backdrop / Outside Tap to Cancel
           Positioned.fill(
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: _dismissOverlay,
-              child: Container(
-                color: AppColors.primary.withValues(alpha: 0.45),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                child: Container(
+                  color: AppColors.primary.withValues(alpha: 0.45),
+                ),
               ),
             ),
           ),
@@ -580,111 +563,6 @@ class _WidgetVoiceOverlayScreenState extends State<WidgetVoiceOverlayScreen>
                         border: InputBorder.none,
                       ),
                     ),
-                  ),
-                ],
-              ),
-              const Divider(height: 20, color: AppColors.chartTrack),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Payment Method',
-                    style: AppTypography.caption.copyWith(
-                      color: AppColors.primary.withValues(alpha: 0.5),
-                    ),
-                  ),
-                  Row(
-                    children: [
-                      // Cash Pill
-                      GestureDetector(
-                        onTap: () {
-                          HapticFeedback.selectionClick();
-                          setState(() => _selectedMethod = 'Cash');
-                        },
-                        behavior: HitTestBehavior.opaque,
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 180),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: _selectedMethod == 'Cash'
-                                ? AppColors.accent
-                                : AppColors.surface,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: _selectedMethod == 'Cash'
-                                  ? AppColors.accent
-                                  : AppColors.primary.withValues(alpha: 0.15),
-                              width: 1,
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                '💵 Cash',
-                                style: AppTypography.label.copyWith(
-                                  color: _selectedMethod == 'Cash'
-                                      ? AppColors.surface
-                                      : AppColors.primary,
-                                  fontWeight: _selectedMethod == 'Cash'
-                                      ? FontWeight.w700
-                                      : FontWeight.w500,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      // Card Pill
-                      GestureDetector(
-                        onTap: () {
-                          HapticFeedback.selectionClick();
-                          setState(() => _selectedMethod = 'Card');
-                        },
-                        behavior: HitTestBehavior.opaque,
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 180),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: _selectedMethod == 'Card'
-                                ? AppColors.accent
-                                : AppColors.surface,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: _selectedMethod == 'Card'
-                                  ? AppColors.accent
-                                  : AppColors.primary.withValues(alpha: 0.15),
-                              width: 1,
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                '💳 Card',
-                                style: AppTypography.label.copyWith(
-                                  color: _selectedMethod == 'Card'
-                                      ? AppColors.surface
-                                      : AppColors.primary,
-                                  fontWeight: _selectedMethod == 'Card'
-                                      ? FontWeight.w700
-                                      : FontWeight.w500,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
                   ),
                 ],
               ),

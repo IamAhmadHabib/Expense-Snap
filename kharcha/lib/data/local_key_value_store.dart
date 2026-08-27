@@ -3,7 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 abstract class LocalKeyValueStore {
   String? getString(String key);
   Future<void> setString(String key, String value);
-  Future<void> reload() async {}
+  Future<void> reload();
 }
 
 class SharedPreferencesLocalStore implements LocalKeyValueStore {
