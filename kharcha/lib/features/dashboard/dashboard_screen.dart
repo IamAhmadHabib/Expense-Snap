@@ -983,15 +983,6 @@ class _DashboardScreenState extends State<DashboardScreen>
                     borderRadius: BorderRadius.circular(pillRadius),
                   ),
                 )
-              : Container(
-                  margin: const EdgeInsets.only(bottom: 10),
-                  width: 5,
-                  height: 5,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.35),
-                    shape: BoxShape.circle,
-                  ),
-                ),
         ),
         const SizedBox(height: 8),
         Text(
