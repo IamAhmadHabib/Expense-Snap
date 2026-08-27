@@ -8,6 +8,7 @@ tags: [tasks, open]
 
 ## Priority
 
+- [x] Fix Urdu preposition multiplier bug (`ka/ki/ke` -> `k`) and expand Pakistani colloquial vocabulary across Dart and Kotlin parsers (Completed).
 - [x] In-Widget Voice Logging without opening the main app (Native VoiceWidgetActivity + VoiceTransactionParser) (Completed).
 - [x] Native Home Screen Widget with today's spending glance and instant Voice capture shortcut (Completed).
 - Enable Email/Password sign-in provider in Firebase Console for `kharcha-expense-snap` if not already enabled.

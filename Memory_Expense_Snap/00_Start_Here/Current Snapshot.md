@@ -26,6 +26,12 @@ Kharcha currently has a high-fidelity Flutter UI with a local-first, Firebase-sy
 
 ## Connected UI Shell
 
+- Multilingual & Urdu Voice Parsing Engine (Zero-Hallucination & Colloquial Accuracy):
+  - Fixed Urdu preposition multiplier bug: Enforced strict word boundaries (`\b`) on numerical multipliers (`crore\b`, `lakh\b`, `hazar\b`, `thousand\b`, `sau\b`, `k\b`). This ensures Urdu/Hindi postpositions/prepositions (`ka`, `ki`, `ke`, `kay`) are NEVER erroneously matched as the English "k" (thousands) multiplier (e.g., "300 ka khana" parses accurately as 300, not 300,000).
+  - Expanded Pakistani compound denominations: Resolves `derh sau` (150), `dhai sau` (250), `paune do sau` (175), `sawa do sau` (225), `paune sau` (75), `sawa sau` (125), `derh hazar` (1500), `dhai hazar` (2500), `sade teen hazar` (3500), `sade char hazar` (4500), `sade panch hazar` (5500), `paune hazar` (750), `sawa lakh` (125,000), `derh lakh` (150,000), `dhai lakh` (250,000), `sade teen lakh` (350,000), and `crore`/`kror` (10,000,000).
+  - Comprehensive Pakistani vocabulary dictionary: Integrated hundreds of localized keywords for Food & Dining (biryani, nihari, haleem, karahi, paratha, shawarma, chai, doodh patti, lassi, nashta, iftar, cheezious, ranchers, etc.), Transportation (petrol, fuel, cng, rickshaw, chingchi, metro, speedo, bykea, indrive, kiraya, toll, m-tag), Bills & Utilities (bijli, lesco, kelectric, gas, sui gas, cylinder, pani, tanker, nayatel, stormfiber, mobile load, jazzcash, easypaisa, tuition fee, committee/kamiti), Groceries & Shopping (rashan, sauda, doodh, dahi, anday, atta, chawal, ghee, sabzi, gosht, imtiaz, alfatah, kapray, jora, shalwar kameez, daraz), Health (panadol, disprin, arinac, brufen, dawa, dawai, hospital, d-watson, fazal din), Entertainment (cinepax, nueplex, cue cinema, netflix, pubg), and Income (tankhwah, tanha, wazifa, freelance, upwork, eidi, salami, wasool, jama).
+  - Full feature parity maintained between Flutter Dart (`GeminiVoiceExpenseParser`) and Android Native Kotlin (`VoiceTransactionParser`).
+
 - In-Widget Instant Voice Logging (Zero Full-App Launch):
   - Tapping the widget's amber microphone invokes native `VoiceWidgetActivity`.
   - Android displays the native voice recognition prompt directly above the home screen wallpaper.

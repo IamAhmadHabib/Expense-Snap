@@ -10,6 +10,8 @@ Use this note to link decisions.
 
 ## Current Decisions
 
+- Enforce strict word boundaries (`\b`) on numerical multipliers (`k\b`, `hazar\b`, `lakh\b`, `crore\b`) in both Flutter Dart and Android Kotlin voice parsers. This guarantees Urdu prepositions (`ka`, `ki`, `ke`) are never confused with the English `k` (thousands) multiplier, preventing 1000x amount inflation on colloquial spoken inputs.
+
 - Implement in-widget voice logging using native Android `VoiceWidgetActivity` and `RecognizerIntent.ACTION_RECOGNIZE_SPEECH` to avoid opening the full Flutter app window, parsing and saving transactions directly into `FlutterSharedPreferences` and updating the widget `RemoteViews` on the home screen.
 
 - Implement native Android Home Screen Widget via `home_widget` providing at-a-glance daily spending and one-tap deep links (`kharcha://capture/voice`, `kharcha://capture/scan`, `kharcha://capture/manual`) that open the app directly into the requested capture mode without blind background saves.
