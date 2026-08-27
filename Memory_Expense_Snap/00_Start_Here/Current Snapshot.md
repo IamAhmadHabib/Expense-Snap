@@ -1,7 +1,7 @@
 ---
 type: snapshot
 status: active
-updated: 2026-07-19
+updated: 2026-08-27
 tags: [current-state, snapshot]
 ---
 
@@ -25,6 +25,11 @@ Kharcha currently has a high-fidelity Flutter UI with a local-first, Firebase-sy
 - [[Notifications Screen]]
 
 ## Connected UI Shell
+
+- Weekly Velocity card features subtle greyish stadium pill tracks (`AppColors.chartTrack`) behind all days, with small dark baseline indicators for zero-spending slots and generous top breathing headroom inside the pill container so peak amounts don't touch the upper ceiling, while maintaining original 32px pill width.
+- Google Sign-In is configured with explicit pre-sign-in session clearing (`signOut()` before `signIn()`), ensuring the native Google Account Picker prompt appears every time the user taps "Continue with Google".
+- Microphone permission handling is fully automated via `permission_handler: ^12.0.3` with proactive OS permission prompts upon entering the Voice tab, graceful settings fallbacks, and real-time STT waveform streaming with zero mock text.
+- Firebase is enabled by default for mobile/desktop runtimes with fallback detection, while automatically disabled in `FLUTTER_TEST` execution.
 
 - [[Onboarding]] now uses three transparent PNG illustrations with a persistent viewport, overlapping 900 ms page transitions, synchronized text/indicator motion, rapid-tap locking, retained swipe/Skip/Get Started behavior, image precaching, responsive sizing, meaningful illustration semantics, and a reduced-motion cross-fade.
 - Dashboard avatar opens [[Profile]].

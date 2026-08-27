@@ -12,7 +12,7 @@ tags: [tasks, open]
 - Implement Firebase Storage-backed `AttachmentService` behind the Phase C contract.
 - Enable Firebase intentionally during integration testing with `--dart-define=KHARCHA_FIREBASE_ENABLED=true`.
 - Verify a clean reinstall restores transactions plus profile/settings for a Google-authenticated user.
-- Wire real Gemini voice parsing into `ExpenseCaptureAdapter<VoiceCaptureInput>`.
+- [x] Wire real Gemini voice parsing into `ExpenseCaptureAdapter<VoiceCaptureInput>` (Completed with speech_to_text and proactive permissions).
 - Wire real OCR/ML Kit scanning into `ExpenseCaptureAdapter<OcrCaptureInput>`.
 - Replace remaining placeholder analytics active-stat/insight logic with derived local data.
 

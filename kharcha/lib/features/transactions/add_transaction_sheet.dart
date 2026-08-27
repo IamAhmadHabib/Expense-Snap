@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../../models/transaction.dart';
 import '../../models/transaction_draft.dart';
 import '../../repositories/repository_scope.dart';
@@ -1283,14 +1284,15 @@ class _VoiceTabViewState extends State<_VoiceTabView>
   int _hintIndex = 0;
   bool _hasPermission = false;
   Timer? _hintTimer;
+  double _soundLevel = 0.0;
 
   String _currentTranscript = '';
   TransactionDraft _parsedDraft = TransactionDraft(
-    merchant: 'Burger',
-    category: 'Food & Dining',
-    amount: 300,
+    merchant: '',
+    category: 'Other',
+    amount: 0,
     date: DateTime.now(),
-    note: 'Burger',
+    note: '',
     method: 'Cash',
     source: TransactionSource.voice,
   );
@@ -1323,8 +1325,8 @@ class _VoiceTabViewState extends State<_VoiceTabView>
   @override
   void initState() {
     super.initState();
-    _amountController = TextEditingController(text: '300');
-    _noteController = TextEditingController(text: 'Burger');
+    _amountController = TextEditingController(text: '');
+    _noteController = TextEditingController(text: '');
 
     _micBreathingController = AnimationController(
       vsync: this,
@@ -1352,6 +1354,19 @@ class _VoiceTabViewState extends State<_VoiceTabView>
     )..repeat();
 
     _startHintCycling();
+    _checkInitialPermission();
+  }
+
+  Future<void> _checkInitialPermission() async {
+    try {
+      final status = await Permission.microphone.status;
+      if (mounted) {
+        setState(() => _hasPermission = status.isGranted);
+      }
+      if (!status.isGranted && !status.isPermanentlyDenied) {
+        await _requestPermission();
+      }
+    } catch (_) {}
   }
 
   void _startHintCycling() {
@@ -1361,13 +1376,56 @@ class _VoiceTabViewState extends State<_VoiceTabView>
     });
   }
 
-  void _requestPermission() {
+  Future<bool> _requestPermission() async {
     HapticFeedback.lightImpact();
-    Future.delayed(const Duration(milliseconds: 600), () {
+    try {
+      final status = await Permission.microphone.request();
       if (mounted) {
-        setState(() => _hasPermission = true);
+        setState(() => _hasPermission = status.isGranted);
       }
-    });
+      if (status.isGranted) {
+        return true;
+      } else if (status.isPermanentlyDenied) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text(
+                'Microphone permission is denied. Please enable it in App Settings.',
+              ),
+              backgroundColor: AppColors.danger,
+              action: SnackBarAction(
+                label: 'Settings',
+                textColor: AppColors.surface,
+                onPressed: openAppSettings,
+              ),
+            ),
+          );
+        }
+        return false;
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Microphone permission is required to record voice expenses.',
+              ),
+              backgroundColor: AppColors.danger,
+            ),
+          );
+        }
+        return false;
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Permission error: $e'),
+            backgroundColor: AppColors.danger,
+          ),
+        );
+      }
+      return false;
+    }
   }
 
   @override
@@ -1386,51 +1444,108 @@ class _VoiceTabViewState extends State<_VoiceTabView>
 
   Future<void> _toggleListening() async {
     HapticFeedback.mediumImpact();
+    if (!_hasPermission) {
+      final granted = await _requestPermission();
+      if (!granted) return;
+    }
     if (_state == _VoiceState.idle || _state == _VoiceState.error) {
       setState(() {
         _state = _VoiceState.listening;
         _currentTranscript = '';
+        _soundLevel = 0.0;
       });
-      _startVoiceCapture();
+      await _startVoiceCapture();
     } else if (_state == _VoiceState.listening) {
       await _speechService.stopListening();
-      _startProcessing();
+      await _startProcessing();
     }
   }
 
   Future<void> _startVoiceCapture() async {
-    final hasSpeech = await _speechService.initialize();
+    final hasSpeech = await _speechService.initialize(
+      onError: (errorMsg) {
+        if (mounted && _state == _VoiceState.listening) {
+          if (_currentTranscript.trim().isNotEmpty) {
+            _startProcessing();
+          } else {
+            setState(() => _state = _VoiceState.idle);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Microphone: $errorMsg'),
+                backgroundColor: AppColors.danger,
+              ),
+            );
+          }
+        }
+      },
+      onStatus: (status) {
+        if (mounted && (status == 'done' || status == 'notListening')) {
+          if (_state == _VoiceState.listening) {
+            if (_currentTranscript.trim().isNotEmpty) {
+              _startProcessing();
+            } else {
+              setState(() => _state = _VoiceState.idle);
+            }
+          }
+        }
+      },
+    );
+
     if (hasSpeech && mounted && _state == _VoiceState.listening) {
-      await _speechService.startListening(
+      final started = await _speechService.startListening(
         onResult: (words) {
           if (!mounted) return;
           setState(() {
             _currentTranscript = words;
           });
         },
+        onSoundLevelChange: (level) {
+          if (!mounted) return;
+          setState(() {
+            _soundLevel = level;
+          });
+        },
       );
-    } else {
-      if (_currentTranscript.isEmpty) {
-        _currentTranscript = _hints[_hintIndex];
+      if (!started && mounted && _state == _VoiceState.listening) {
+        setState(() => _state = _VoiceState.idle);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Unable to listen right now. Please tap the mic again.'),
+            backgroundColor: AppColors.danger,
+          ),
+        );
       }
-      Future.delayed(const Duration(milliseconds: 2500), () {
-        if (mounted && _state == _VoiceState.listening) {
-          _startProcessing();
-        }
-      });
+    } else {
+      if (mounted) {
+        setState(() => _state = _VoiceState.idle);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Microphone not available or permission denied.'),
+            backgroundColor: AppColors.danger,
+          ),
+        );
+      }
     }
   }
 
   Future<void> _startProcessing() async {
+    final transcript = _currentTranscript.trim();
+    if (transcript.isEmpty) {
+      setState(() => _state = _VoiceState.idle);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No speech detected. Please tap the microphone and speak your expense.'),
+          backgroundColor: AppColors.danger,
+        ),
+      );
+      return;
+    }
+
     setState(() {
       _state = _VoiceState.processing;
       _step1Card = _step2Amount = _step3Category = _step4Note = _step5Date =
           _step6Complete = false;
     });
-
-    final transcript = _currentTranscript.trim().isNotEmpty
-        ? _currentTranscript.trim()
-        : _hints[_hintIndex];
 
     try {
       final scope = RepositoryScope.maybeOf(context);
@@ -1652,13 +1767,40 @@ class _VoiceTabViewState extends State<_VoiceTabView>
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 300),
                   child: isListening
-                      ? Text(
-                          "I'm listening...",
-                          key: const ValueKey('listen'),
-                          style: AppTypography.h3.copyWith(
-                            color: AppColors.profileSubtext,
-                            fontSize: 22,
-                            fontWeight: FontWeight.w700,
+                      ? Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 24),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                _currentTranscript.isNotEmpty
+                                    ? '"$_currentTranscript"'
+                                    : "I'm listening...",
+                                key: ValueKey(
+                                  _currentTranscript.isNotEmpty
+                                      ? _currentTranscript
+                                      : 'listen',
+                                ),
+                                textAlign: TextAlign.center,
+                                style: AppTypography.h3.copyWith(
+                                  color: _currentTranscript.isNotEmpty
+                                      ? AppColors.primary
+                                      : AppColors.profileSubtext,
+                                  fontSize: _currentTranscript.isNotEmpty ? 22 : 20,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              if (_currentTranscript.isEmpty) ...[
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Speak your expense naturally',
+                                  style: AppTypography.caption.copyWith(
+                                    color: AppColors.primary.withValues(alpha: 0.4),
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
                         )
                       : isProcessing
@@ -1900,7 +2042,8 @@ class _VoiceTabViewState extends State<_VoiceTabView>
                     children: List.generate(12, (i) {
                       double phase =
                           (_waveController.value * 2 * math.pi) + (i * 0.5);
-                      double barHeight = 6 + (math.sin(phase).abs() * 24);
+                      double soundBoost = (_soundLevel.clamp(0.0, 10.0) * 2.0);
+                      double barHeight = 6 + (math.sin(phase).abs() * (20 + soundBoost));
                       return Container(
                         margin: const EdgeInsets.symmetric(horizontal: 2),
                         width: 3,

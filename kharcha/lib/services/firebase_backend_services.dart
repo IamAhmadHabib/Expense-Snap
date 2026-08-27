@@ -26,7 +26,11 @@ class FirebaseAuthService implements AuthService {
 
   @override
   Future<AppSession> signInWithGoogle() async {
-    final googleUser = await GoogleSignIn().signIn();
+    final googleSignIn = GoogleSignIn();
+    try {
+      await googleSignIn.signOut();
+    } catch (_) {}
+    final googleUser = await googleSignIn.signIn();
     if (googleUser == null) {
       throw StateError('Google sign-in was cancelled.');
     }

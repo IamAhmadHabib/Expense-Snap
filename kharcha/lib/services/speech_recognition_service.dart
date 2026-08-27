@@ -7,43 +7,50 @@ class SpeechRecognitionService {
   bool _isInitialized = false;
 
   SpeechRecognitionService({stt.SpeechToText? speech})
-    : _speech = speech ?? stt.SpeechToText();
+      : _speech = speech ?? stt.SpeechToText();
 
   bool get isListening => _speech.isListening;
   bool get isAvailable => _isInitialized && _speech.isAvailable;
+  Future<bool> hasPermission() => _speech.hasPermission;
 
-  Future<bool> initialize() async {
+  Future<bool> initialize({
+    ValueChanged<String>? onError,
+    ValueChanged<String>? onStatus,
+  }) async {
     if (_isInitialized) return true;
     try {
       _isInitialized = await _speech.initialize(
         onError: (error) {
           if (kDebugMode) {
-            print('Speech recognition error: ${error.errorMsg}');
+            print('Speech recognition error: ');
           }
+          onError?.call(error.errorMsg);
         },
         onStatus: (status) {
           if (kDebugMode) {
-            print('Speech recognition status: $status');
+            print('Speech recognition status: ');
           }
+          onStatus?.call(status);
         },
       );
       return _isInitialized;
     } catch (e) {
       if (kDebugMode) {
-        print('Speech recognition initialize exception: $e');
+        print('Speech recognition initialize exception: ');
       }
       _isInitialized = false;
       return false;
     }
   }
 
-  Future<void> startListening({
+  Future<bool> startListening({
     required ValueChanged<String> onResult,
+    ValueChanged<double>? onSoundLevelChange,
     String? localeId,
   }) async {
     if (!_isInitialized) {
       final ok = await initialize();
-      if (!ok) return;
+      if (!ok) return false;
     }
 
     try {
@@ -51,11 +58,20 @@ class SpeechRecognitionService {
         onResult: (result) {
           onResult(result.recognizedWords);
         },
+        onSoundLevelChange: onSoundLevelChange,
+        listenOptions: stt.SpeechListenOptions(
+          listenMode: stt.ListenMode.dictation,
+          partialResults: true,
+          cancelOnError: false,
+          localeId: localeId,
+        ),
       );
+      return true;
     } catch (e) {
       if (kDebugMode) {
         print('Speech listen error: $e');
       }
+      return false;
     }
   }
 

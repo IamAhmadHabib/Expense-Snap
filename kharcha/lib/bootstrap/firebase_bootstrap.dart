@@ -1,3 +1,4 @@
+import 'dart:io' show Platform;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 
@@ -32,7 +33,22 @@ class FirebaseBootstrapResult {
 }
 
 class FirebaseBootstrap {
-  static const enabled = bool.fromEnvironment('KHARCHA_FIREBASE_ENABLED');
+  static bool get enabled {
+    if (!kIsWeb) {
+      try {
+        if (Platform.environment.containsKey('FLUTTER_TEST')) {
+          return const bool.fromEnvironment(
+            'KHARCHA_FIREBASE_ENABLED',
+            defaultValue: false,
+          );
+        }
+      } catch (_) {}
+    }
+    return const bool.fromEnvironment(
+      'KHARCHA_FIREBASE_ENABLED',
+      defaultValue: true,
+    );
+  }
 
   const FirebaseBootstrap._();
 

@@ -916,9 +916,9 @@ class _DashboardScreenState extends State<DashboardScreen>
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: List.generate(7, (index) {
                   final amount = weeklyAmounts[index];
-                  final height = maxAmount == 0
-                      ? 8.0
-                      : 8 + (amount / maxAmount * 72);
+                  final height = (amount <= 0 || maxAmount <= 0)
+                      ? 0.0
+                      : (amount / maxAmount * 66.0).clamp(16.0, 66.0);
                   return _buildBar(
                     labels[index],
                     height,
@@ -935,6 +935,10 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 
   Widget _buildBar(String day, double height, bool isToday, String amountStr) {
+    const double maxBarHeight = 80.0;
+    const double barWidth = 32.0;
+    const double pillRadius = 16.0;
+
     return Column(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
@@ -949,28 +953,45 @@ class _DashboardScreenState extends State<DashboardScreen>
           ),
         ),
         const SizedBox(height: 6),
+        // Pill track with subtle greyish background representing empty bar
         Container(
-          width: 32, // wide, thick bars for luxury feel
-          height: height,
+          width: barWidth,
+          height: maxBarHeight,
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.bottomCenter,
-              end: Alignment.topCenter,
-              colors: isToday
-                  ? [AppColors.accent, AppColors.accent.withValues(alpha: 0.7)]
-                  : [AppColors.chartCharcoal, AppColors.chartCharcoalDark],
-            ),
-            borderRadius: BorderRadius.circular(8),
-            boxShadow: isToday
-                ? [
-                    BoxShadow(
-                      color: AppColors.accent.withValues(alpha: 0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 4),
-                    ),
-                  ]
-                : [],
+            color: AppColors.chartTrack,
+            borderRadius: BorderRadius.circular(pillRadius),
           ),
+          alignment: Alignment.bottomCenter,
+          child: height > 0
+              ? Container(
+                  width: barWidth,
+                  height: height,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.bottomCenter,
+                      end: Alignment.topCenter,
+                      colors: isToday
+                          ? [
+                              AppColors.accent,
+                              AppColors.accent.withValues(alpha: 0.7),
+                            ]
+                          : [
+                              AppColors.chartCharcoal,
+                              AppColors.chartCharcoalDark,
+                            ],
+                    ),
+                    borderRadius: BorderRadius.circular(pillRadius),
+                  ),
+                )
+              : Container(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  width: 5,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.35),
+                    shape: BoxShape.circle,
+                  ),
+                ),
         ),
         const SizedBox(height: 8),
         Text(

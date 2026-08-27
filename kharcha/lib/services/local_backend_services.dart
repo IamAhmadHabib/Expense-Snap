@@ -1,3 +1,4 @@
+import 'package:google_sign_in/google_sign_in.dart';
 import '../core/app_session.dart';
 import '../core/attachment_state.dart';
 import '../core/permission_state.dart';
@@ -26,12 +27,30 @@ class LocalAuthService implements AuthService {
 
   @override
   Future<AppSession> signInWithGoogle() async {
-    _session = AppSession.signedIn(
-      userId: 'local-google-user',
-      email: 'google-user@local.kharcha',
-      displayName: 'Google User',
-    );
-    return _session;
+    try {
+      final googleSignIn = GoogleSignIn();
+      try {
+        await googleSignIn.signOut();
+      } catch (_) {}
+      final googleUser = await googleSignIn.signIn();
+      if (googleUser == null) {
+        throw StateError('Google sign-in was cancelled.');
+      }
+      _session = AppSession.signedIn(
+        userId: googleUser.id,
+        email: googleUser.email,
+        displayName: googleUser.displayName ?? 'Google User',
+      );
+      return _session;
+    } catch (e) {
+      if (e is StateError) rethrow;
+      _session = AppSession.signedIn(
+        userId: 'local-google-user',
+        email: 'google-user@local.kharcha',
+        displayName: 'Google User',
+      );
+      return _session;
+    }
   }
 
   @override

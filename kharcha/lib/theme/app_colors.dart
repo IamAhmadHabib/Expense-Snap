@@ -67,6 +67,7 @@ class AppColors {
   static const Color chartCharcoal = Color(0xFF4A4A4A);
   static const Color chartCharcoalDark = Color(0xFF383838);
   static const Color chartNeutral = Color(0xFF908D89);
+  static const Color chartTrack = Color(0xFFF1F4F8);
   static const Color navInactive = Color(0xFF8C7E6E);
   static const Color insightSurface = Color(0xFF1E1E20);
   static const Color cameraBlack = Color(0xFF0A0A0A);
