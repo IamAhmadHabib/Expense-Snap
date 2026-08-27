@@ -410,8 +410,12 @@ class _ProfileScreenState extends State<ProfileScreen>
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) =>
-          _MonthlyBudgetSheet(initialAmount: _currentSettings.monthlyBudget),
+      builder: (context) => _MonthlyBudgetSheet(
+        initialAmount: _currentSettings.monthlyBudget,
+        currencySymbol: _currentSettings.currencySymbol.isNotEmpty
+            ? _currentSettings.currencySymbol
+            : 'Rs.',
+      ),
     );
     if (budget != null) {
       await _updateSettings(_currentSettings.copyWith(monthlyBudget: budget));
@@ -547,6 +551,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     HapticFeedback.mediumImpact();
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => _FeedbackSheet(
         title: 'Enjoying Kharcha?',
@@ -561,6 +566,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     HapticFeedback.mediumImpact();
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => _FeedbackSheet(
         title: 'Send Feedback',
@@ -1125,8 +1131,12 @@ class _ProfileScreenState extends State<ProfileScreen>
 
 class _MonthlyBudgetSheet extends StatefulWidget {
   final double initialAmount;
+  final String currencySymbol;
 
-  const _MonthlyBudgetSheet({required this.initialAmount});
+  const _MonthlyBudgetSheet({
+    required this.initialAmount,
+    this.currencySymbol = 'Rs.',
+  });
 
   @override
   State<_MonthlyBudgetSheet> createState() => _MonthlyBudgetSheetState();
@@ -1189,7 +1199,6 @@ class _MonthlyBudgetSheetState extends State<_MonthlyBudgetSheet> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 IconButton(
                   onPressed: () => Navigator.pop(context),
@@ -1198,9 +1207,13 @@ class _MonthlyBudgetSheetState extends State<_MonthlyBudgetSheet> {
                     color: AppColors.primary,
                   ),
                 ),
-                Text(
-                  'Monthly Budget',
-                  style: AppTypography.h3.copyWith(fontWeight: FontWeight.w800),
+                Expanded(
+                  child: Center(
+                    child: Text(
+                      'Monthly Budget',
+                      style: AppTypography.h3.copyWith(fontWeight: FontWeight.w800),
+                    ),
+                  ),
                 ),
                 const SizedBox(width: 48),
               ],
@@ -1222,7 +1235,7 @@ class _MonthlyBudgetSheetState extends State<_MonthlyBudgetSheet> {
               Transform.translate(
                 offset: const Offset(0, 10),
                 child: Text(
-                  'Rs.',
+                  widget.currencySymbol,
                   style: AppTypography.h3.copyWith(
                     color: AppColors.primary.withValues(alpha: 0.4),
                   ),
@@ -2070,82 +2083,92 @@ class _FeedbackSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(32),
       decoration: const BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.vertical(top: Radius.circular(40)),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 48,
-            height: 6,
-            decoration: BoxDecoration(
-              color: AppColors.accent,
-              borderRadius: BorderRadius.circular(3),
-            ),
-          ),
-          const SizedBox(height: 32),
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: AppColors.background,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, size: 40, color: AppColors.amberGold),
-          ),
-          const SizedBox(height: 24),
-          Text(title, style: AppTypography.h2),
-          const SizedBox(height: 12),
-          Text(
-            subtitle,
-            textAlign: TextAlign.center,
-            style: AppTypography.bodySmall.copyWith(
-              color: AppColors.primary.withValues(alpha: 0.6),
-            ),
-          ),
-          if (title.contains('Enjoying')) ...[
-            const SizedBox(height: 32),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(
-                5,
-                (i) => Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: Icon(
-                    PhosphorIcons.star(PhosphorIconsStyle.fill),
-                    color: AppColors.amberGold,
-                    size: 32,
+      child: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 48,
+                height: 6,
+                decoration: BoxDecoration(
+                  color: AppColors.accent,
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: const BoxDecoration(
+                  color: AppColors.background,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, size: 36, color: AppColors.amberGold),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                title,
+                style: AppTypography.h2,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 10),
+              Text(
+                subtitle,
+                textAlign: TextAlign.center,
+                style: AppTypography.bodySmall.copyWith(
+                  color: AppColors.primary.withValues(alpha: 0.6),
+                ),
+              ),
+              if (title.contains('Enjoying')) ...[
+                const SizedBox(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(
+                    5,
+                    (i) => Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: Icon(
+                        PhosphorIcons.star(PhosphorIconsStyle.fill),
+                        color: AppColors.amberGold,
+                        size: 32,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 28),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  minimumSize: const Size(double.infinity, 56),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  elevation: 0,
+                ),
+                child: Text(buttonText, style: AppTypography.button),
+              ),
+              const SizedBox(height: 12),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(
+                  'Maybe Later',
+                  style: AppTypography.label.copyWith(
+                    color: AppColors.primary.withValues(alpha: 0.4),
                   ),
                 ),
               ),
-            ),
-          ],
-          const SizedBox(height: 40),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              minimumSize: const Size(double.infinity, 64),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(24),
-              ),
-              elevation: 0,
-            ),
-            child: Text(buttonText, style: AppTypography.button),
+            ],
           ),
-          const SizedBox(height: 16),
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Maybe Later',
-              style: AppTypography.label.copyWith(
-                color: AppColors.primary.withValues(alpha: 0.4),
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

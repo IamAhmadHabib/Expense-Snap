@@ -688,6 +688,9 @@ class _AddTransactionSheetState extends State<AddTransactionSheet>
     final String formatted = amountValue >= 1000000
         ? NumberFormat.compact().format(amountValue)
         : NumberFormat('#,###.##').format(amountValue);
+    final currencySymbol =
+        RepositoryScope.maybeOf(context)?.settings.settings.currencySymbol ??
+        'Rs.';
 
     return Column(
       children: [
@@ -705,7 +708,7 @@ class _AddTransactionSheetState extends State<AddTransactionSheet>
             Transform.translate(
               offset: const Offset(0, 10),
               child: Text(
-                'Rs.',
+                currencySymbol,
                 style: AppTypography.h3.copyWith(
                   color: AppColors.primary.withValues(alpha: 0.4),
                 ),

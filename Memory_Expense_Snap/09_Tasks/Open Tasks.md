@@ -8,6 +8,7 @@ tags: [tasks, open]
 
 ## Priority
 
+- [x] Native Home Screen Widget with today's spending glance and instant Voice capture shortcut (Completed).
 - Enable Email/Password sign-in provider in Firebase Console for `kharcha-expense-snap` if not already enabled.
 - Implement Firebase Storage-backed `AttachmentService` behind the Phase C contract.
 - Enable Firebase intentionally during integration testing with `--dart-define=KHARCHA_FIREBASE_ENABLED=true`.

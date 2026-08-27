@@ -26,6 +26,16 @@ Kharcha currently has a high-fidelity Flutter UI with a local-first, Firebase-sy
 
 ## Connected UI Shell
 
+- Native Android Home Screen Widget (`KharchaWidgetProvider`) implemented via `home_widget: ^0.9.3`:
+  - Visuals: Quiet luxury card layout with warm cream/white background, 24dp rounded corners, and branded "KHARCHA" header.
+  - Glance metrics: Displays real-time today's total spending (e.g., `Rs 11,200`) and today's expense count (`4 expenses today`).
+  - Quick action shortcuts:
+    - 🎙️ Voice Action (`@id/widget_action_voice`): Signature warm amber button that deep-links (`kharcha://capture/voice`) straight into `AddTransactionSheet(initialTab: AddTransactionTab.voice)`.
+    - 📷 Scan Action (`@id/widget_action_scan`): Deep-links (`kharcha://capture/scan`) directly into receipt scan.
+    - ➕ Manual Action (`@id/widget_action_manual`): Deep-links (`kharcha://capture/manual`) directly into manual expense form.
+    - Whole card tap deep-links (`kharcha://home`) to Dashboard.
+  - Real-time updates: `HomeWidgetService.updateWidgetData()` automatically syncs today's spending whenever transactions or settings are created, updated, or deleted.
+
 - Weekly Velocity card features subtle greyish stadium pill tracks (`AppColors.chartTrack`) behind all days, with small dark baseline indicators for zero-spending slots and generous top breathing headroom inside the pill container so peak amounts don't touch the upper ceiling, while maintaining original 32px pill width.
 - Google Sign-In is configured with explicit pre-sign-in session clearing (`signOut()` before `signIn()`), ensuring the native Google Account Picker prompt appears every time the user taps "Continue with Google".
 - Microphone permission handling is fully automated via `permission_handler: ^12.0.3` with proactive OS permission prompts upon entering the Voice tab, graceful settings fallbacks, and real-time STT waveform streaming with zero mock text.

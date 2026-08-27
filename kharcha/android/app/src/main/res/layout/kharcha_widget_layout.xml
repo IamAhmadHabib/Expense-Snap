@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_container"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_card_background"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingStart="18dp"
+    android:paddingTop="12dp"
+    android:paddingEnd="16dp"
+    android:paddingBottom="12dp">
+
+    <!-- Left Column: Branding, Today Spent, Count -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <!-- Top Tag / Header -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:letterSpacing="0.08"
+                android:text="KHARCHA"
+                android:textColor="#8C7E6E"
+                android:textSize="10sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/widget_currency_tag"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:background="@drawable/widget_tag_bg"
+                android:paddingStart="6dp"
+                android:paddingTop="1dp"
+                android:paddingEnd="6dp"
+                android:paddingBottom="1dp"
+                android:text="PKR"
+                android:textColor="#8C7E6E"
+                android:textSize="9sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Big Amount -->
+        <TextView
+            android:id="@+id/widget_today_amount"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:includeFontPadding="false"
+            android:text="Rs 0"
+            android:textColor="#1A1612"
+            android:textSize="22sp"
+            android:textStyle="bold" />
+
+        <!-- Subtitle / Count -->
+        <TextView
+            android:id="@+id/widget_today_count"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="1dp"
+            android:text="0 expenses today"
+            android:textColor="#8C7E6E"
+            android:textSize="11sp" />
+    </LinearLayout>
+
+    <!-- Right Side: Quick Action Buttons -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <!-- Manual Quick Add Button -->
+        <ImageButton
+            android:id="@+id/widget_action_manual"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginEnd="8dp"
+            android:background="@drawable/widget_action_btn_bg"
+            android:contentDescription="Manual Add"
+            android:padding="10dp"
+            android:scaleType="centerInside"
+            android:src="@drawable/ic_widget_plus" />
+
+        <!-- Scan Receipt Button -->
+        <ImageButton
+            android:id="@+id/widget_action_scan"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginEnd="8dp"
+            android:background="@drawable/widget_action_btn_bg"
+            android:contentDescription="Scan Receipt"
+            android:padding="10dp"
+            android:scaleType="centerInside"
+            android:src="@drawable/ic_widget_scan" />
+
+        <!-- Voice Button (Signature Amber CTA) -->
+        <ImageButton
+            android:id="@+id/widget_action_voice"
+            android:layout_width="46dp"
+            android:layout_height="46dp"
+            android:background="@drawable/widget_voice_btn_bg"
+            android:contentDescription="Voice Log"
+            android:padding="11dp"
+            android:scaleType="centerInside"
+            android:src="@drawable/ic_widget_mic" />
+    </LinearLayout>
+</LinearLayout>

@@ -10,6 +10,8 @@ Use this note to link decisions.
 
 ## Current Decisions
 
+- Implement native Android Home Screen Widget via `home_widget` providing at-a-glance daily spending and one-tap deep links (`kharcha://capture/voice`, `kharcha://capture/scan`, `kharcha://capture/manual`) that open the app directly into the requested capture mode without blind background saves.
+
 - Ensure Google OAuth always prompts for account selection by calling `GoogleSignIn().signOut()` before `signIn()`.
 - Use `permission_handler` to proactively request OS-level runtime audio permissions when navigating to Voice capture.
 - Standardize weekly chart empty slots using `AppColors.chartTrack` with a subtle circular dot at the base and 14px headroom at the pill top.

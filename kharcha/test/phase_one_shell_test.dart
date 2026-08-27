@@ -356,4 +356,82 @@ void main() {
 
     expect(find.text('Log out of Kharcha?'), findsOneWidget);
   });
+
+  testWidgets('profile Monthly Budget sheet displays selected currency symbol', (
+    tester,
+  ) async {
+    final settingsRepo = AppSettingsRepository.inMemory();
+    await settingsRepo.update(
+      settingsRepo.settings.copyWith(currencySymbol: r'$'),
+    );
+
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: RepositoryScope(
+          transactions: TransactionRepository.inMemory(),
+          settings: settingsRepo,
+          services: AppServices.local(),
+          child: const DashboardScreen(
+            initialBudget: 25000,
+            userName: 'Ahmad',
+            currencySymbol: r'$',
+          ),
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 2300));
+
+    await tester.tap(find.byKey(const ValueKey('dock_tab_3')));
+    await tester.pump(const Duration(milliseconds: 1200));
+
+    final monthlyBudgetRow = find.text('Monthly Budget');
+    await tester.ensureVisible(monthlyBudgetRow);
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.tap(monthlyBudgetRow);
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(
+      find.text('How much do you want to spend this month?'),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byType(BottomSheet),
+        matching: find.text(r'$'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byType(BottomSheet),
+        matching: find.text('Rs.'),
+      ),
+      findsNothing,
+    );
+  });
+
+  testWidgets('profile Rate Kharcha sheet opens without layout overflow', (
+    tester,
+  ) async {
+    await _pumpDashboard(tester);
+
+    await tester.tap(find.byKey(const ValueKey('dock_tab_3')));
+    await tester.pump(const Duration(milliseconds: 1200));
+
+    final rateRow = find.text('Rate Kharcha');
+    await tester.ensureVisible(rateRow);
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.tap(rateRow);
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(find.text('Enjoying Kharcha?'), findsOneWidget);
+    expect(find.text('Rate on Play Store'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 }

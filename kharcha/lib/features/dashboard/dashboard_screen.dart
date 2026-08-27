@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui';
+import '../../services/home_widget_service.dart';
 import '../analytics/analytics_screen.dart';
 import '../history/history_screen.dart';
 import '../transactions/add_transaction_sheet.dart';
@@ -57,6 +59,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   bool _repositoriesInitialized = false;
   late List<Widget> _tabPages;
   bool _tabPagesInitialized = false;
+  StreamSubscription<Uri?>? _widgetClickSub;
 
   @override
   void initState() {
@@ -138,6 +141,7 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   @override
   void dispose() {
+    _widgetClickSub?.cancel();
     if (_repositoriesInitialized) {
       _transactions.removeListener(_onRepositoryChanged);
       _settings.removeListener(_onRepositoryChanged);
@@ -160,13 +164,44 @@ class _DashboardScreenState extends State<DashboardScreen>
     _tabPages = _buildTabPages();
     _tabPagesInitialized = true;
     _repositoriesInitialized = true;
+    _widgetClickSub ??= HomeWidgetService.registerClickCallback(_handleWidgetUri);
+    _syncHomeWidget();
   }
 
   void _onRepositoryChanged() {
+    _syncHomeWidget();
     if (mounted) {
       setState(() {
         _tabPages = _buildTabPages();
       });
+    }
+  }
+
+  void _syncHomeWidget() {
+    if (!_repositoriesInitialized) return;
+    unawaited(
+      HomeWidgetService.updateWidgetData(
+        transactions: _transactions.transactions,
+        settings: _settings.settings,
+      ),
+    );
+  }
+
+  void _handleWidgetUri(Uri? uri) {
+    if (uri == null || !mounted) return;
+    final path = uri.path.toLowerCase();
+    final host = uri.host.toLowerCase();
+
+    if (host == 'capture' || path.contains('capture')) {
+      if (path.contains('voice') || host == 'voice') {
+        _openAddTransaction(AddTransactionTab.voice);
+      } else if (path.contains('scan') || host == 'scan') {
+        _openAddTransaction(AddTransactionTab.scan);
+      } else if (path.contains('manual') || host == 'manual') {
+        _openAddTransaction(AddTransactionTab.manual);
+      }
+    } else if (host == 'home') {
+      _selectTab(0);
     }
   }
 
@@ -838,7 +873,7 @@ class _DashboardScreenState extends State<DashboardScreen>
         child: Container(
           width: double.infinity,
           height:
-              210, // Keeps the 48px action target plus full-height weekly bars inside the card.
+              224, // Accommodates the 48px action target plus 90px weekly bars and text labels
           padding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.lg,
             vertical: AppSpacing.md,
@@ -935,7 +970,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 
   Widget _buildBar(String day, double height, bool isToday, String amountStr) {
-    const double maxBarHeight = 80.0;
+    const double maxBarHeight = 90.0;
     const double barWidth = 32.0;
     const double pillRadius = 16.0;
 
@@ -983,6 +1018,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                     borderRadius: BorderRadius.circular(pillRadius),
                   ),
                 )
+              : null,
         ),
         const SizedBox(height: 8),
         Text(
