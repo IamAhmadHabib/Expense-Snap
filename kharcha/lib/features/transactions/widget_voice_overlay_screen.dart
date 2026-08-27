@@ -11,6 +11,7 @@ import '../../services/capture_adapters.dart';
 import '../../services/home_widget_service.dart';
 import '../../services/speech_recognition_service.dart';
 import '../../theme/app_colors.dart';
+import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
 
 enum _OverlayVoiceState {
@@ -21,9 +22,7 @@ enum _OverlayVoiceState {
 }
 
 class WidgetVoiceOverlayScreen extends StatefulWidget {
-  final String? initialTranscript;
-
-  const WidgetVoiceOverlayScreen({super.key, this.initialTranscript});
+  const WidgetVoiceOverlayScreen({super.key});
 
   @override
   State<WidgetVoiceOverlayScreen> createState() => _WidgetVoiceOverlayScreenState();
@@ -50,7 +49,6 @@ class _WidgetVoiceOverlayScreenState extends State<WidgetVoiceOverlayScreen>
   @override
   void initState() {
     super.initState();
-    _currentTranscript = widget.initialTranscript ?? '';
     _parsedDraft = TransactionDraft(
       merchant: '',
       category: 'Food & Dining',
@@ -92,9 +90,7 @@ class _WidgetVoiceOverlayScreenState extends State<WidgetVoiceOverlayScreen>
     );
 
     _slideController.forward();
-    if (widget.initialTranscript == null) {
-      _initAndStartListening();
-    }
+    _initAndStartListening();
   }
 
   @override
@@ -129,18 +125,27 @@ class _WidgetVoiceOverlayScreenState extends State<WidgetVoiceOverlayScreen>
     final available = await _speechService.initialize(
       onError: (val) {
         if (mounted && _state == _OverlayVoiceState.listening) {
-          _finishListening();
+          if (_currentTranscript.trim().isNotEmpty) {
+            _finishListening();
+          }
         }
       },
       onStatus: (val) {
         if ((val == 'done' || val == 'notListening') &&
-            _state == _OverlayVoiceState.listening) {
+            _state == _OverlayVoiceState.listening &&
+            _currentTranscript.trim().isNotEmpty) {
           _finishListening();
         }
       },
     );
 
     if (available && mounted) {
+      HapticFeedback.mediumImpact();
+      setState(() {
+        _state = _OverlayVoiceState.listening;
+        _currentTranscript = '';
+      });
+
       await _speechService.startListening(
         onResult: (text) {
           if (mounted) {
@@ -162,7 +167,21 @@ class _WidgetVoiceOverlayScreenState extends State<WidgetVoiceOverlayScreen>
     await _speechService.stopListening();
 
     if (_currentTranscript.trim().isEmpty) {
-      _dismissOverlay();
+      if (mounted) {
+        setState(() {
+          _parsedDraft = TransactionDraft(
+            merchant: 'General',
+            category: 'Food & Dining',
+            amount: 0,
+            date: DateTime.now(),
+            source: TransactionSource.voice,
+          );
+          _amountController.text = '';
+          _merchantController.text = '';
+          _selectedMethod = 'Cash';
+          _state = _OverlayVoiceState.confirming;
+        });
+      }
       return;
     }
 
@@ -179,7 +198,7 @@ class _WidgetVoiceOverlayScreenState extends State<WidgetVoiceOverlayScreen>
       draft = res.draft;
     } else {
       draft = TransactionDraft(
-        merchant: '',
+        merchant: 'Expense',
         category: 'Food & Dining',
         amount: 0,
         date: DateTime.now(),
@@ -189,17 +208,13 @@ class _WidgetVoiceOverlayScreenState extends State<WidgetVoiceOverlayScreen>
 
     if (mounted) {
       _parsedDraft = draft;
-      _selectedMethod = (draft.method.isNotEmpty &&
-              (draft.method.toLowerCase() == 'card' ||
-                  draft.method.toLowerCase() == 'cash'))
+      _selectedMethod = (draft.method.isNotEmpty && (draft.method.toLowerCase() == 'card' || draft.method.toLowerCase() == 'cash'))
           ? (draft.method.toLowerCase() == 'card' ? 'Card' : 'Cash')
           : 'Cash';
       _amountController.text =
           draft.amount > 0 ? draft.amount.toStringAsFixed(0) : '';
-      _merchantController.text = (draft.merchant.isNotEmpty &&
-              draft.merchant.toLowerCase() != 'expense')
-          ? draft.merchant
-          : (draft.category != 'Other' ? draft.category : '');
+      _merchantController.text =
+          draft.merchant.isNotEmpty ? draft.merchant : 'Expense';
       HapticFeedback.lightImpact();
       setState(() => _state = _OverlayVoiceState.confirming);
     }
@@ -214,15 +229,11 @@ class _WidgetVoiceOverlayScreenState extends State<WidgetVoiceOverlayScreen>
 
     final parsedAmount =
         double.tryParse(_amountController.text) ?? _parsedDraft.amount;
-    final enteredMerchant = _merchantController.text.trim();
-    final finalMerchant = enteredMerchant.isNotEmpty
-        ? enteredMerchant
-        : ((_parsedDraft.merchant.isNotEmpty &&
-                _parsedDraft.merchant.toLowerCase() != 'expense')
+    final finalMerchant = _merchantController.text.trim().isNotEmpty
+        ? _merchantController.text.trim()
+        : (_parsedDraft.merchant.isNotEmpty
             ? _parsedDraft.merchant
-            : (_parsedDraft.category != 'Other'
-                ? _parsedDraft.category
-                : 'General'));
+            : 'Expense');
 
     final draftToSave = _parsedDraft.copyWith(
       amount: parsedAmount > 0 ? parsedAmount : 100.0,
@@ -252,13 +263,16 @@ class _WidgetVoiceOverlayScreenState extends State<WidgetVoiceOverlayScreen>
   }
 
   void _dismissOverlay() {
-    SystemNavigator.pop();
+    _slideController.reverse().then((_) {
+      SystemNavigator.pop();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final settings = RepositoryScope.maybeOf(context)?.settings.settings;
-    final currency = settings?.currencySymbol ?? r'$';
+    final currency =
+        RepositoryScope.maybeOf(context)?.settings.settings.currencySymbol ??
+        'Rs.';
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -275,118 +289,106 @@ class _WidgetVoiceOverlayScreenState extends State<WidgetVoiceOverlayScreen>
             ),
           ),
 
-          // 2. Centered/Bottom Floating Card
+          // 2. Floating Voice Sheet
           Align(
             alignment: Alignment.bottomCenter,
             child: SlideTransition(
               position: _slideAnimation,
               child: FadeTransition(
                 opacity: _fadeAnimation,
-                child: SafeArea(
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 24,
+                child: Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                    vertical: AppSpacing.lg,
+                  ),
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(32),
+                    border: Border.all(
+                      color: AppColors.primary.withValues(alpha: 0.08),
+                      width: 1,
                     ),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 24,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(32),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.primary.withValues(alpha: 0.18),
-                          blurRadius: 36,
-                          offset: const Offset(0, 16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withValues(alpha: 0.25),
+                        blurRadius: 30,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Drag Handle
+                      Container(
+                        width: 40,
+                        height: 5,
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(3),
                         ),
-                      ],
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Top row: pill badge & close button
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.accent.withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Container(
-                                    width: 8,
-                                    height: 8,
-                                    decoration: BoxDecoration(
-                                      color: _state ==
-                                              _OverlayVoiceState.listening
-                                          ? AppColors.danger
-                                          : AppColors.accent,
-                                      shape: BoxShape.circle,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    _state == _OverlayVoiceState.listening
-                                        ? 'Listening...'
-                                        : _state ==
-                                                _OverlayVoiceState.processing
-                                            ? 'Processing...'
-                                            : _state ==
-                                                    _OverlayVoiceState.confirming
-                                                ? 'Confirm Expense'
-                                                : 'Saved',
-                                    style: AppTypography.caption.copyWith(
-                                      color: AppColors.primary,
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            GestureDetector(
-                              onTap: _dismissOverlay,
-                              behavior: HitTestBehavior.opaque,
-                              child: Container(
-                                width: 32,
-                                height: 32,
-                                decoration: BoxDecoration(
-                                  color:
-                                      AppColors.primary.withValues(alpha: 0.06),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Header Row
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                width: 10,
+                                height: 10,
+                                decoration: const BoxDecoration(
+                                  color: AppColors.accent,
                                   shape: BoxShape.circle,
                                 ),
-                                child: const Icon(
-                                  Icons.close_rounded,
-                                  size: 18,
-                                  color: AppColors.primary,
-                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                _state == _OverlayVoiceState.listening
+                                    ? 'Listening...'
+                                    : (_state == _OverlayVoiceState.processing
+                                        ? 'Processing with AI...'
+                                        : (_state == _OverlayVoiceState.saved
+                                            ? 'Saved!'
+                                            : 'Confirm Expense')),
+                                style: AppTypography.h3.copyWith(fontSize: 18),
+                              ),
+                            ],
+                          ),
+                          GestureDetector(
+                            onTap: _dismissOverlay,
+                            behavior: HitTestBehavior.opaque,
+                            child: Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: const BoxDecoration(
+                                color: AppColors.background,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.close_rounded,
+                                size: 18,
+                                color: AppColors.primary,
                               ),
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
 
-                        const SizedBox(height: 20),
-
-                        // State-dependent Content
-                        if (_state == _OverlayVoiceState.listening)
-                          _buildListeningBody()
-                        else if (_state == _OverlayVoiceState.processing)
-                          _buildProcessingBody()
-                        else if (_state == _OverlayVoiceState.confirming)
-                          _buildConfirmingBody(currency)
-                        else if (_state == _OverlayVoiceState.saved)
-                          _buildSavedBody(),
+                      // Dynamic Content
+                      if (_state == _OverlayVoiceState.listening ||
+                          _state == _OverlayVoiceState.processing) ...[
+                        _buildListeningBody(),
+                      ] else if (_state == _OverlayVoiceState.confirming) ...[
+                        _buildConfirmingBody(currency),
+                      ] else ...[
+                        _buildSavedBody(),
                       ],
-                    ),
+                    ],
                   ),
                 ),
               ),
@@ -400,62 +402,58 @@ class _WidgetVoiceOverlayScreenState extends State<WidgetVoiceOverlayScreen>
   Widget _buildListeningBody() {
     return Column(
       children: [
-        // Pulsing Waveform Visualizer
-        AnimatedBuilder(
-          animation: _waveController,
-          builder: (context, child) {
-            return Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: List.generate(12, (index) {
-                final baseHeight = 12.0;
-                final dynamicFactor =
-                    math.sin((_waveController.value * 2 * math.pi) + index) *
-                        14 +
-                    (_soundLevel * 25);
-                final height = (baseHeight + dynamicFactor).clamp(6.0, 48.0);
-                return Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 2.5),
-                  width: 4,
-                  height: height,
-                  decoration: BoxDecoration(
-                    color: index % 2 == 0
-                        ? AppColors.accent
-                        : AppColors.accent.withValues(alpha: 0.6),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                );
-              }),
-            );
-          },
+        // Waveform indicator
+        SizedBox(
+          height: 48,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(12, (index) {
+              final norm = math.sin((index / 12) * math.pi);
+              final dynamicScale =
+                  (0.3 + (_soundLevel.clamp(0, 10) / 10.0) * 0.7);
+              final height = (norm * 36 * dynamicScale).clamp(6.0, 44.0);
+              return AnimatedContainer(
+                duration: const Duration(milliseconds: 120),
+                width: 4,
+                height: height,
+                margin: const EdgeInsets.symmetric(horizontal: 3),
+                decoration: BoxDecoration(
+                  color: AppColors.accent,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              );
+            }),
+          ),
         ),
+        const SizedBox(height: 16),
 
-        const SizedBox(height: 24),
-
-        // Live transcript or listening placeholder
+        // Live Transcript Text
         Container(
-          constraints: const BoxConstraints(minHeight: 44),
-          alignment: Alignment.center,
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: AppColors.background,
+            borderRadius: BorderRadius.circular(18),
+          ),
           child: Text(
-            _currentTranscript.isNotEmpty
-                ? '"$_currentTranscript"'
-                : 'Say something like "Lunch 450" or "Petrol 2000"...',
+            _currentTranscript.isEmpty
+                ? 'Say e.g. "Lunch 450" or "1200 Uber"'
+                : '"$_currentTranscript"',
             textAlign: TextAlign.center,
             style: AppTypography.body.copyWith(
-              color: _currentTranscript.isNotEmpty
-                  ? AppColors.primary
-                  : AppColors.primary.withValues(alpha: 0.45),
-              fontWeight: _currentTranscript.isNotEmpty
-                  ? FontWeight.w600
-                  : FontWeight.w400,
               fontSize: 15,
+              color: _currentTranscript.isEmpty
+                  ? AppColors.primary.withValues(alpha: 0.4)
+                  : AppColors.primary,
+              fontStyle: _currentTranscript.isEmpty
+                  ? FontStyle.italic
+                  : FontStyle.normal,
             ),
           ),
         ),
+        const SizedBox(height: 20),
 
-        const SizedBox(height: 24),
-
-        // Done button
+        // Action: Done Listening button
         GestureDetector(
           onTap: _finishListening,
           behavior: HitTestBehavior.opaque,
@@ -463,17 +461,8 @@ class _WidgetVoiceOverlayScreenState extends State<WidgetVoiceOverlayScreen>
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 14),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [AppColors.accent, AppColors.amberGold],
-              ),
+              color: AppColors.primary,
               borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.accent.withValues(alpha: 0.3),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
             ),
             child: Center(
               child: Text(
@@ -481,7 +470,6 @@ class _WidgetVoiceOverlayScreenState extends State<WidgetVoiceOverlayScreen>
                 style: AppTypography.button.copyWith(
                   color: AppColors.surface,
                   fontSize: 15,
-                  fontWeight: FontWeight.w700,
                 ),
               ),
             ),
@@ -491,25 +479,10 @@ class _WidgetVoiceOverlayScreenState extends State<WidgetVoiceOverlayScreen>
     );
   }
 
-  Widget _buildProcessingBody() {
-    return const Column(
-      children: [
-        SizedBox(height: 16),
-        CircularProgressIndicator(
-          color: AppColors.accent,
-          strokeWidth: 3,
-        ),
-        SizedBox(height: 16),
-        Text('Resolving expense details...'),
-        SizedBox(height: 16),
-      ],
-    );
-  }
-
   Widget _buildConfirmingBody(String currency) {
     return Column(
       children: [
-        // Amount and Merchant Card
+        // Amount and Merchant Row
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -601,15 +574,10 @@ class _WidgetVoiceOverlayScreenState extends State<WidgetVoiceOverlayScreen>
                       style: AppTypography.body.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
-                      decoration: InputDecoration(
+                      decoration: const InputDecoration(
                         isDense: true,
                         contentPadding: EdgeInsets.zero,
                         border: InputBorder.none,
-                        hintText: 'Merchant / Note',
-                        hintStyle: AppTypography.body.copyWith(
-                          color: AppColors.primary.withValues(alpha: 0.3),
-                          fontWeight: FontWeight.w400,
-                        ),
                       ),
                     ),
                   ),
@@ -620,13 +588,12 @@ class _WidgetVoiceOverlayScreenState extends State<WidgetVoiceOverlayScreen>
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Method',
+                    'Payment Method',
                     style: AppTypography.caption.copyWith(
                       color: AppColors.primary.withValues(alpha: 0.5),
                     ),
                   ),
                   Row(
-                    mainAxisSize: MainAxisSize.min,
                     children: [
                       // Cash Pill
                       GestureDetector(
@@ -638,14 +605,14 @@ class _WidgetVoiceOverlayScreenState extends State<WidgetVoiceOverlayScreen>
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 180),
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 5,
+                            horizontal: 12,
+                            vertical: 6,
                           ),
                           decoration: BoxDecoration(
                             color: _selectedMethod == 'Cash'
                                 ? AppColors.accent
                                 : AppColors.surface,
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(12),
                             border: Border.all(
                               color: _selectedMethod == 'Cash'
                                   ? AppColors.accent
@@ -653,17 +620,22 @@ class _WidgetVoiceOverlayScreenState extends State<WidgetVoiceOverlayScreen>
                               width: 1,
                             ),
                           ),
-                          child: Text(
-                            'Cash',
-                            style: AppTypography.label.copyWith(
-                              color: _selectedMethod == 'Cash'
-                                  ? AppColors.surface
-                                  : AppColors.primary,
-                              fontWeight: _selectedMethod == 'Cash'
-                                  ? FontWeight.w700
-                                  : FontWeight.w500,
-                              fontSize: 12,
-                            ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                '💵 Cash',
+                                style: AppTypography.label.copyWith(
+                                  color: _selectedMethod == 'Cash'
+                                      ? AppColors.surface
+                                      : AppColors.primary,
+                                  fontWeight: _selectedMethod == 'Cash'
+                                      ? FontWeight.w700
+                                      : FontWeight.w500,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
@@ -678,14 +650,14 @@ class _WidgetVoiceOverlayScreenState extends State<WidgetVoiceOverlayScreen>
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 180),
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 5,
+                            horizontal: 12,
+                            vertical: 6,
                           ),
                           decoration: BoxDecoration(
                             color: _selectedMethod == 'Card'
                                 ? AppColors.accent
                                 : AppColors.surface,
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(12),
                             border: Border.all(
                               color: _selectedMethod == 'Card'
                                   ? AppColors.accent
@@ -693,17 +665,22 @@ class _WidgetVoiceOverlayScreenState extends State<WidgetVoiceOverlayScreen>
                               width: 1,
                             ),
                           ),
-                          child: Text(
-                            'Card',
-                            style: AppTypography.label.copyWith(
-                              color: _selectedMethod == 'Card'
-                                  ? AppColors.surface
-                                  : AppColors.primary,
-                              fontWeight: _selectedMethod == 'Card'
-                                  ? FontWeight.w700
-                                  : FontWeight.w500,
-                              fontSize: 12,
-                            ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                '💳 Card',
+                                style: AppTypography.label.copyWith(
+                                  color: _selectedMethod == 'Card'
+                                      ? AppColors.surface
+                                      : AppColors.primary,
+                                  fontWeight: _selectedMethod == 'Card'
+                                      ? FontWeight.w700
+                                      : FontWeight.w500,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),

@@ -1,9 +1,12 @@
 package com.kharcha.kharcha
 
+import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.content.Context
+import android.content.Intent
 import android.content.SharedPreferences
 import android.net.Uri
+import android.os.Build
 import android.widget.RemoteViews
 import es.antonborri.home_widget.HomeWidgetLaunchIntent
 import es.antonborri.home_widget.HomeWidgetPlugin
@@ -26,7 +29,7 @@ class KharchaWidgetProvider : HomeWidgetProvider() {
                 setTextViewText(R.id.widget_today_count, todayCount)
                 setTextViewText(R.id.widget_currency_tag, currency)
 
-                // Voice Action -> Custom Flutter overlay (transparent FlutterActivity)
+                // Voice Action -> Instant Pre-warmed Voice Activity
                 val voiceIntent = HomeWidgetLaunchIntent.getActivity(
                     context,
                     VoiceWidgetActivity::class.java,

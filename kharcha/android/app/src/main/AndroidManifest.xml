@@ -4,9 +4,12 @@
     <uses-permission android:name="android.permission.BLUETOOTH"/>
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN"/>
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT"/>
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
     <application
         android:label="kharcha"
-        android:name="${applicationName}"
+        android:name=".KharchaApplication"
         android:icon="@mipmap/ic_launcher">
         <activity
             android:name=".MainActivity"
@@ -64,6 +67,13 @@
             </intent-filter>
         </activity>
 
+        <!-- Background Voice WindowManager Overlay Service -->
+        <service
+            android:name=".VoiceOverlayService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="microphone" />
+
         <!-- Kharcha Home Screen AppWidget Receiver -->
         <receiver
             android:name=".KharchaWidgetProvider"
@@ -80,10 +90,6 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
-        <!-- Disable experimental Impeller Vulkan backend on Android to prevent Qualcomm Adreno Gralloc4 buffer allocation stalls on translucent activities -->
-        <meta-data
-            android:name="io.flutter.embedding.android.EnableImpeller"
-            android:value="false" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

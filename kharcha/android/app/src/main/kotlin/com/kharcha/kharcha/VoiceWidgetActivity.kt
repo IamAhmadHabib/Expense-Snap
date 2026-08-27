@@ -1,20 +1,29 @@
 package com.kharcha.kharcha
 
+import android.os.Bundle
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.android.FlutterActivityLaunchConfigs
+import io.flutter.embedding.engine.FlutterEngineCache
 
-/**
- * Transparent FlutterActivity that renders the custom Flutter voice overlay
- * screen (/widget-voice route) directly over the Android home screen.
- *
- * No native Android speech dialog is used — Flutter's own SpeechRecognitionService
- * handles microphone capture, and the WidgetVoiceOverlayScreen provides the full
- * custom UI: waveform, live transcription, AI parsing, editable fields, and save.
- *
- * When the user finishes (save or cancel), SystemNavigator.pop() finishes this
- * Activity and returns to the home screen without any app window lingering.
- */
 class VoiceWidgetActivity : FlutterActivity() {
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        overridePendingTransition(0, 0)
+    }
+
+    override fun finish() {
+        super.finish()
+        overridePendingTransition(0, 0)
+    }
+
+    override fun getCachedEngineId(): String? {
+        return if (FlutterEngineCache.getInstance().contains(KharchaApplication.VOICE_ENGINE_ID)) {
+            KharchaApplication.VOICE_ENGINE_ID
+        } else {
+            null
+        }
+    }
 
     override fun getBackgroundMode(): FlutterActivityLaunchConfigs.BackgroundMode {
         return FlutterActivityLaunchConfigs.BackgroundMode.transparent
@@ -22,5 +31,16 @@ class VoiceWidgetActivity : FlutterActivity() {
 
     override fun getInitialRoute(): String {
         return "/widget-voice"
+    }
+
+    override fun shouldDestroyEngineWithHost(): Boolean {
+        // Destroy used engine instance on dismiss to prevent stale state
+        return true
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        // Pre-warm a fresh engine in the background for the next widget tap
+        (application as? KharchaApplication)?.prewarmVoiceEngine()
     }
 }

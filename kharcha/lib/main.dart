@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
 import 'bootstrap/app_bootstrap.dart';
 import 'bootstrap/firebase_bootstrap.dart';
 import 'core/app_session.dart';
@@ -13,28 +12,10 @@ import 'repositories/transaction_repository.dart';
 import 'services/app_services.dart';
 import 'services/app_sync_coordinator.dart';
 import 'theme/app_theme.dart';
+export 'voice_overlay_main.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  final initialRoute =
-      WidgetsBinding.instance.platformDispatcher.defaultRouteName;
-  final isWidgetVoice = initialRoute == '/widget-voice';
-
-  if (isWidgetVoice) {
-    // Ultra-fast path: bypass Firebase startup & cloud sync, launch voice overlay in <10ms
-    final bootstrap = await KharchaBootstrap.local(useFirebaseServices: false);
-    runApp(
-      KharchaApp(
-        transactions: bootstrap.transactions,
-        settings: bootstrap.settings,
-        services: bootstrap.services,
-        startDestination: AppStartDestination.dashboard,
-        initialRoute: '/widget-voice',
-      ),
-    );
-    return;
-  }
 
   final firebase = await FirebaseBootstrap.initialize();
   final bootstrap = await KharchaBootstrap.local(
@@ -105,14 +86,16 @@ class KharchaApp extends StatelessWidget {
         title: 'Kharcha',
         debugShowCheckedModeBanner: false,
         theme: theme,
+        // Force MaterialApp to use '/' so it doesn't try to navigate
+        // to the platform-provided '/widget-voice' route (which isn't
+        // registered in the routes map). We already read the platform
+        // route above via platformDispatcher.defaultRouteName.
+        initialRoute: '/',
         home: isWidgetVoice
             ? const WidgetVoiceOverlayScreen()
             : (startDestination == AppStartDestination.dashboard
                 ? const DashboardScreen()
                 : const OnboardingScreen()),
-        routes: {
-          '/widget-voice': (context) => const WidgetVoiceOverlayScreen(),
-        },
       ),
     );
   }
