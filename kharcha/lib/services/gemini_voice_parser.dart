@@ -289,19 +289,25 @@ class GeminiVoiceExpenseParser
     }
 
     // Multiplier words: "2 hazar", "5 sau", "1 lakh"
+    // Multiplier words: "2 hazar", "5 sau", "1 lakh", "2k" (requires word boundary so "ka", "ki", "ke" are never matched as "k")
     final multiplierMatch = RegExp(
       r'(\d+(?:\.\d+)?)\s*(hazar|hazaar|k|sau|lakh)',
+      r'(\d+(?:\.\d+)?)\s*(hazar\b|hazaar\b|thousand\b|sau\b|lakh\b|lac\b|k\b)',
     ).firstMatch(lower);
     if (multiplierMatch != null) {
       final base = double.tryParse(multiplierMatch.group(1) ?? '') ?? 0;
       final unit = multiplierMatch.group(2) ?? '';
       if (unit.startsWith('hazar') ||
           unit.startsWith('hazaar') ||
+          unit == 'thousand' ||
           unit == 'k') {
         return base * 1000;
       }
       if (unit == 'sau') return base * 100;
       if (unit == 'lakh') return base * 100000;
+      if (unit.startsWith('lakh') || unit.startsWith('lac')) {
+        return base * 100000;
+      }
     }
 
     // Standalone words

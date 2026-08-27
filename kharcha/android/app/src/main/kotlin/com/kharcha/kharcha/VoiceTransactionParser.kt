@@ -46,15 +46,14 @@ object VoiceTransactionParser {
         if (text.contains("paune do sau")) return 175.0
         if (text.contains("paune sau")) return 75.0
 
-        // Multipliers: hazar (thousand), lakh (100k)
-        val hazarPattern = Pattern.compile("(\\d+)\\s*(hazar|thousand|k)")
+        // Multipliers: hazar (thousand), lakh (100k), k (requires word boundary so "ka", "ki", "ke" are never matched as "k")
+        val hazarPattern = Pattern.compile("(\\d+)\\s*(hazar\\b|thousand\\b|k\\b)")
         val hazarMatcher = hazarPattern.matcher(text)
         if (hazarMatcher.find()) {
             val num = hazarMatcher.group(1)?.toDoubleOrNull() ?: 1.0
             return num * 1000.0
         }
 
-        val lakhPattern = Pattern.compile("(\\d+)\\s*(lakh|lac)")
         val lakhMatcher = lakhPattern.matcher(text)
         if (lakhMatcher.find()) {
             val num = lakhMatcher.group(1)?.toDoubleOrNull() ?: 1.0

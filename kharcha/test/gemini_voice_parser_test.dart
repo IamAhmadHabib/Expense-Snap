@@ -110,6 +110,30 @@ void main() {
       expect(result.warnings, isNotEmpty);
       expect(result.warnings.first, contains('No transcript'));
     });
+
+    test('does not mistake Urdu preposition "ka" for "k" thousand multiplier', () async {
+      final result = GeminiVoiceExpenseParser.parseLocally('300 ka khana');
+
+      expect(result.draft.amount, 300);
+      expect(result.draft.category, 'Food & Dining');
+      expect(result.draft.merchant, 'Food');
+    });
+
+    test('does not mistake Urdu prepositions "ki" or "ke" for thousand multipliers', () async {
+      final biryaniResult = GeminiVoiceExpenseParser.parseLocally('500 ki biryani');
+      expect(biryaniResult.draft.amount, 500);
+      expect(biryaniResult.draft.category, 'Food & Dining');
+
+      final petrolResult = GeminiVoiceExpenseParser.parseLocally('1200 ka petrol');
+      expect(petrolResult.draft.amount, 1200);
+      expect(petrolResult.draft.category, 'Transportation');
+    });
+
+    test('correctly parses legitimate "k" thousand multiplier when intended', () async {
+      final result = GeminiVoiceExpenseParser.parseLocally('2k burger');
+      expect(result.draft.amount, 2000);
+      expect(result.draft.category, 'Food & Dining');
+    });
   });
 
   group('TransactionDraft copyWith', () {
