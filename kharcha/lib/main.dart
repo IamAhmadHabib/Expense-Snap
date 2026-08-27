@@ -5,6 +5,7 @@ import 'bootstrap/firebase_bootstrap.dart';
 import 'core/app_session.dart';
 import 'features/dashboard/dashboard_screen.dart';
 import 'features/onboarding/onboarding_screen.dart';
+import 'features/transactions/widget_voice_overlay_screen.dart';
 import 'repositories/app_settings_repository.dart';
 import 'repositories/repository_scope.dart';
 import 'repositories/transaction_repository.dart';
@@ -74,7 +75,7 @@ class KharchaApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light,
         home: isWidgetVoice
-            ? WidgetVoiceOverlayScreen()
+            ? const WidgetVoiceOverlayScreen()
             : (startDestination == AppStartDestination.dashboard
                 ? const DashboardScreen()
                 : const OnboardingScreen()),
