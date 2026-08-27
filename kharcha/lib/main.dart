@@ -85,6 +85,11 @@ class KharchaApp extends StatelessWidget {
         title: 'Kharcha',
         debugShowCheckedModeBanner: false,
         theme: theme,
+        // Force MaterialApp to use '/' so it doesn't try to navigate
+        // to the platform-provided '/widget-voice' route (which isn't
+        // registered in the routes map). We already read the platform
+        // route above via platformDispatcher.defaultRouteName.
+        initialRoute: '/',
         home: isWidgetVoice
             ? const WidgetVoiceOverlayScreen()
             : (startDestination == AppStartDestination.dashboard

@@ -51,6 +51,7 @@ class _HistoryScreenState extends State<HistoryScreen>
     'Travel',
   };
 
+  Timer? _snackBarTimer;
   late TransactionRepository _repository;
   bool _repositoryInitialized = false;
   List<Transaction> get _allTransactions => _repository.transactions;
@@ -86,6 +87,7 @@ class _HistoryScreenState extends State<HistoryScreen>
 
   @override
   void dispose() {
+    _snackBarTimer?.cancel();
     if (_repositoryInitialized) {
       _repository.removeListener(_onRepositoryChanged);
     }
@@ -984,11 +986,21 @@ class _HistoryScreenState extends State<HistoryScreen>
     if (!mounted) return;
     setState(() => _expandedId = null);
 
-    ScaffoldMessenger.of(context).clearSnackBars();
-    ScaffoldMessenger.of(context).showSnackBar(
+    _snackBarTimer?.cancel();
+    final messenger = ScaffoldMessenger.of(context);
+    final bottomPadding = MediaQuery.paddingOf(context).bottom;
+    messenger.clearSnackBars();
+    messenger.showSnackBar(
       SnackBar(
-        backgroundColor: AppColors.primary,
+        duration: const Duration(seconds: 4),
+        dismissDirection: DismissDirection.horizontal,
         behavior: SnackBarBehavior.floating,
+        margin: EdgeInsets.only(
+          left: 16,
+          right: 16,
+          bottom: bottomPadding + 96,
+        ),
+        backgroundColor: AppColors.primary,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         content: Text(
           'Transaction deleted',
@@ -996,8 +1008,10 @@ class _HistoryScreenState extends State<HistoryScreen>
         ),
         action: SnackBarAction(
           label: 'Undo',
-          textColor: AppColors.textOnPrimary,
+          textColor: AppColors.accent,
           onPressed: () async {
+            _snackBarTimer?.cancel();
+            messenger.hideCurrentSnackBar();
             await _repository.undoDelete();
             if (mounted) {
               setState(() => _dismissedTransactionIds.remove(id));
@@ -1007,6 +1021,11 @@ class _HistoryScreenState extends State<HistoryScreen>
         ),
       ),
     );
+
+    // Guaranteed fallback timer to auto-dismiss even if Android accessibility mode overrides duration
+    _snackBarTimer = Timer(const Duration(milliseconds: 4000), () {
+      messenger.hideCurrentSnackBar();
+    });
   }
 
   Widget _buildEmptyState() {

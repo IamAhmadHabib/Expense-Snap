@@ -307,6 +307,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   void _selectTab(int index) {
     if (_activeTab == index) return;
     HapticFeedback.selectionClick();
+    ScaffoldMessenger.of(context).clearSnackBars();
     setState(() => _activeTab = index);
     if (_tabPageController.hasClients) {
       _tabPageController.jumpToPage(index);
@@ -315,6 +316,7 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   void _openNotifications() {
     HapticFeedback.lightImpact();
+    ScaffoldMessenger.of(context).clearSnackBars();
     Navigator.of(
       context,
     ).push(MaterialPageRoute(builder: (_) => const NotificationsScreen()));
@@ -324,6 +326,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     if (_isSheetOpen) return;
 
     HapticFeedback.mediumImpact();
+    ScaffoldMessenger.of(context).clearSnackBars();
     setState(() => _isSheetOpen = true);
 
     final result = await showModalBottomSheet(
