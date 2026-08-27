@@ -26,7 +26,7 @@ class KharchaWidgetProvider : HomeWidgetProvider() {
                 setTextViewText(R.id.widget_today_count, todayCount)
                 setTextViewText(R.id.widget_currency_tag, currency)
 
-                // Voice Action -> Native VoiceWidgetActivity (keeps the app closed!)
+                // Voice Action -> Custom Flutter overlay (transparent FlutterActivity)
                 val voiceIntent = HomeWidgetLaunchIntent.getActivity(
                     context,
                     VoiceWidgetActivity::class.java,

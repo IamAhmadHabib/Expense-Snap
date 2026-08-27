@@ -65,6 +65,17 @@ class KharchaApp extends StatelessWidget {
         WidgetsBinding.instance.platformDispatcher.defaultRouteName;
     final isWidgetVoice = effectiveRoute == '/widget-voice';
 
+    // When launched as a transparent overlay from the widget,
+    // use a fully transparent theme so the home screen shows through.
+    final theme = isWidgetVoice
+        ? AppTheme.light.copyWith(
+            scaffoldBackgroundColor: Colors.transparent,
+            colorScheme: AppTheme.light.colorScheme.copyWith(
+              surface: Colors.transparent,
+            ),
+          )
+        : AppTheme.light;
+
     return RepositoryScope(
       transactions: transactions,
       settings: settings,
@@ -73,7 +84,7 @@ class KharchaApp extends StatelessWidget {
       child: MaterialApp(
         title: 'Kharcha',
         debugShowCheckedModeBanner: false,
-        theme: AppTheme.light,
+        theme: theme,
         home: isWidgetVoice
             ? const WidgetVoiceOverlayScreen()
             : (startDestination == AppStartDestination.dashboard

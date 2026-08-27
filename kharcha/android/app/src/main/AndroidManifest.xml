@@ -53,18 +53,14 @@
             android:theme="@style/TransparentTheme"
             android:exported="true"
             android:launchMode="singleInstance"
+            android:taskAffinity="com.kharcha.kharcha.voice_overlay"
             android:excludeFromRecents="true"
             android:windowSoftInputMode="adjustResize"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:hardwareAccelerated="true">
+            <!-- HomeWidget launch intent filter (required by home_widget package) -->
             <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data
-                    android:scheme="kharcha"
-                    android:host="widget"
-                    android:pathPrefix="/voice" />
+                <action android:name="es.antonborri.home_widget.action.LAUNCH" />
             </intent-filter>
         </activity>
 
