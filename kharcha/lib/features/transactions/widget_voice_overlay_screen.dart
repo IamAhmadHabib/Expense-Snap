@@ -199,6 +199,9 @@ class _WidgetVoiceOverlayScreenState extends State<WidgetVoiceOverlayScreen>
           draft.amount > 0 ? draft.amount.toStringAsFixed(0) : '';
       _merchantController.text =
           draft.merchant.isNotEmpty ? draft.merchant : 'Expense';
+          (draft.merchant.isNotEmpty && draft.merchant.toLowerCase() != 'expense')
+              ? draft.merchant
+              : (draft.category != 'Other' ? draft.category : '');
       HapticFeedback.lightImpact();
       setState(() => _state = _OverlayVoiceState.confirming);
     }
@@ -216,8 +219,13 @@ class _WidgetVoiceOverlayScreenState extends State<WidgetVoiceOverlayScreen>
     final finalMerchant = _merchantController.text.trim().isNotEmpty
         ? _merchantController.text.trim()
         : (_parsedDraft.merchant.isNotEmpty
+    final enteredMerchant = _merchantController.text.trim();
+    final finalMerchant = enteredMerchant.isNotEmpty
+        ? enteredMerchant
+        : ((_parsedDraft.merchant.isNotEmpty && _parsedDraft.merchant.toLowerCase() != 'expense')
             ? _parsedDraft.merchant
             : 'Expense');
+            : (_parsedDraft.category != 'Other' ? _parsedDraft.category : 'General'));
 
     final draftToSave = _parsedDraft.copyWith(
       amount: parsedAmount > 0 ? parsedAmount : 100.0,
@@ -559,9 +567,15 @@ class _WidgetVoiceOverlayScreenState extends State<WidgetVoiceOverlayScreen>
                         fontWeight: FontWeight.w600,
                       ),
                       decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         isDense: true,
                         contentPadding: EdgeInsets.zero,
                         border: InputBorder.none,
+                        hintText: 'Merchant / Note',
+                        hintStyle: AppTypography.body.copyWith(
+                          color: AppColors.primary.withValues(alpha: 0.3),
+                          fontWeight: FontWeight.w400,
+                        ),
                       ),
                     ),
                   ),
@@ -590,6 +604,7 @@ class _WidgetVoiceOverlayScreenState extends State<WidgetVoiceOverlayScreen>
                           duration: const Duration(milliseconds: 180),
                           padding: const EdgeInsets.symmetric(
                             horizontal: 12,
+                            horizontal: 14,
                             vertical: 6,
                           ),
                           decoration: BoxDecoration(
@@ -620,6 +635,17 @@ class _WidgetVoiceOverlayScreenState extends State<WidgetVoiceOverlayScreen>
                                 ),
                               ),
                             ],
+                          child: Text(
+                            'Cash',
+                            style: AppTypography.label.copyWith(
+                              color: _selectedMethod == 'Cash'
+                                  ? AppColors.surface
+                                  : AppColors.primary,
+                              fontWeight: _selectedMethod == 'Cash'
+                                  ? FontWeight.w700
+                                  : FontWeight.w500,
+                              fontSize: 13,
+                            ),
                           ),
                         ),
                       ),
@@ -635,6 +661,7 @@ class _WidgetVoiceOverlayScreenState extends State<WidgetVoiceOverlayScreen>
                           duration: const Duration(milliseconds: 180),
                           padding: const EdgeInsets.symmetric(
                             horizontal: 12,
+                            horizontal: 14,
                             vertical: 6,
                           ),
                           decoration: BoxDecoration(
@@ -665,6 +692,17 @@ class _WidgetVoiceOverlayScreenState extends State<WidgetVoiceOverlayScreen>
                                 ),
                               ),
                             ],
+                          child: Text(
+                            'Card',
+                            style: AppTypography.label.copyWith(
+                              color: _selectedMethod == 'Card'
+                                  ? AppColors.surface
+                                  : AppColors.primary,
+                              fontWeight: _selectedMethod == 'Card'
+                                  ? FontWeight.w700
+                                  : FontWeight.w500,
+                              fontSize: 13,
+                            ),
                           ),
                         ),
                       ),
