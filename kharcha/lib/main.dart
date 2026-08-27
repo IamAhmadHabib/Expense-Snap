@@ -74,7 +74,7 @@ class KharchaApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light,
         home: isWidgetVoice
-            ? const WidgetVoiceOverlayScreen()
+            ? WidgetVoiceOverlayScreen()
             : (startDestination == AppStartDestination.dashboard
                 ? const DashboardScreen()
                 : const OnboardingScreen()),
