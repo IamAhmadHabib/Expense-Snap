@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 abstract class LocalKeyValueStore {
   String? getString(String key);
   Future<void> setString(String key, String value);
+  Future<void> reload() async {}
 }
 
 class SharedPreferencesLocalStore implements LocalKeyValueStore {
@@ -17,6 +18,11 @@ class SharedPreferencesLocalStore implements LocalKeyValueStore {
   Future<void> setString(String key, String value) async {
     await preferences.setString(key, value);
   }
+
+  @override
+  Future<void> reload() async {
+    await preferences.reload();
+  }
 }
 
 class MemoryLocalStore implements LocalKeyValueStore {
@@ -29,4 +35,7 @@ class MemoryLocalStore implements LocalKeyValueStore {
   Future<void> setString(String key, String value) async {
     _values[key] = value;
   }
+
+  @override
+  Future<void> reload() async {}
 }

@@ -17,6 +17,7 @@ class AppSettingsRepository extends ChangeNotifier {
   AppSettings get settings => _settings;
 
   Future<void> load() async {
+    await store.reload();
     final raw = store.getString(_storageKey);
     if (raw != null && raw.isNotEmpty) {
       _settings = AppSettings.fromJson(jsonDecode(raw) as Map<String, dynamic>);
