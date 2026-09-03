@@ -470,6 +470,14 @@ class VoiceWidgetActivity : Activity() {
 
             updateHomeScreenWidget(this, formattedAmount, countText, currency)
 
+            // Broadcast to MainActivity to sync in-memory Flutter repositories immediately
+            try {
+                val syncIntent = Intent("com.kharcha.kharcha.TRANSACTION_ADDED").apply {
+                    setPackage(packageName)
+                }
+                sendBroadcast(syncIntent)
+            } catch (e: Exception) {}
+
             val savedAmountStr = formatter.format(amount.toLong())
             Toast.makeText(this, "✓ Added $currency $savedAmountStr for $merchant", Toast.LENGTH_SHORT).show()
 

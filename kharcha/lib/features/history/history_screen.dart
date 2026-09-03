@@ -642,13 +642,18 @@ class _HistoryScreenState extends State<HistoryScreen>
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
-                                Text(
-                                  tx.merchant,
-                                  style: AppTypography.bodySmall.copyWith(
-                                    fontWeight: FontWeight.w900,
-                                    fontSize: 16,
-                                    color: AppColors.primary,
+                                Flexible(
+                                  child: Text(
+                                    tx.merchant,
+                                    style: AppTypography.bodySmall.copyWith(
+                                      fontWeight: FontWeight.w900,
+                                      fontSize: 16,
+                                      color: AppColors.primary,
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
                                 if (tx.source != TransactionSource.manual) ...[
@@ -674,6 +679,8 @@ class _HistoryScreenState extends State<HistoryScreen>
                                 color: AppColors.primary.withValues(alpha: 0.4),
                                 fontWeight: FontWeight.w600,
                               ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ],
                         ),
@@ -925,8 +932,12 @@ class _HistoryScreenState extends State<HistoryScreen>
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 14, color: AppColors.primary.withValues(alpha: 0.4)),
+          Padding(
+            padding: const EdgeInsets.only(top: 2.0),
+            child: Icon(icon, size: 14, color: AppColors.primary.withValues(alpha: 0.4)),
+          ),
           const SizedBox(width: 8),
           Text(
             label,
@@ -935,11 +946,13 @@ class _HistoryScreenState extends State<HistoryScreen>
             ),
           ),
           const SizedBox(width: 4),
-          Text(
-            value,
-            style: AppTypography.caption.copyWith(
-              fontWeight: FontWeight.bold,
-              color: AppColors.primary,
+          Expanded(
+            child: Text(
+              value,
+              style: AppTypography.caption.copyWith(
+                fontWeight: FontWeight.bold,
+                color: AppColors.primary,
+              ),
             ),
           ),
         ],

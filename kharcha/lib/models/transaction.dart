@@ -106,13 +106,20 @@ class Transaction {
   };
 
   factory Transaction.fromJson(Map<String, dynamic> json) {
+    final amountVal = json['amount'];
+    final parsedAmount = amountVal is num
+        ? amountVal.toDouble()
+        : (double.tryParse(amountVal?.toString() ?? '') ?? 0.0);
+
     return Transaction(
-      id: json['id'] as String,
+      id: json['id'] as String? ?? 'tx_${DateTime.now().millisecondsSinceEpoch}',
       remoteId: json['remoteId'] as String?,
-      merchant: json['merchant'] as String,
-      category: json['category'] as String,
-      amount: (json['amount'] as num).toDouble(),
-      date: DateTime.parse(json['date'] as String),
+      merchant: json['merchant'] as String? ?? 'Expense',
+      category: json['category'] as String? ?? 'Other',
+      amount: parsedAmount,
+      date: json['date'] != null
+          ? DateTime.parse(json['date'] as String)
+          : DateTime.now(),
       note: json['note'] as String? ?? '',
       method: json['method'] as String? ?? 'Cash',
       source: TransactionSource.values.firstWhere(

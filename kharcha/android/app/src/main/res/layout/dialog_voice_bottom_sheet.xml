@@ -305,7 +305,7 @@
                     android:layout_weight="1"
                     android:background="@drawable/btn_secondary_bg"
                     android:gravity="center"
-                    android:text="Retry 🎙️"
+                    android:text"
                     android:textColor="#1C1C1E"
                     android:textSize="15sp"
                     android:textStyle="bold" />
@@ -317,7 +317,7 @@
                     android:layout_weight="2"
                     android:background="@drawable/btn_add_expense_bg"
                     android:gravity="center"
-                    android:text="Add Expense ✓"
+                    android:text="Add Expense"
                     android:textColor="#FFFFFF"
                     android:textSize="15sp"
                     android:textStyle="bold" />

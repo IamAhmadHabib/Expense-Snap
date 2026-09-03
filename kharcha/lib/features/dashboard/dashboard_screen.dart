@@ -36,7 +36,8 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, WidgetsBindingObserver {
+  static const _syncChannel = MethodChannel('com.kharcha.app/sync');
   late AnimationController _mainController;
   late Animation<double> _budgetCountAnimation;
 
@@ -65,6 +66,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
 
     _mainController = AnimationController(
       vsync: this,
@@ -142,6 +144,7 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _widgetClickSub?.cancel();
     if (_repositoriesInitialized) {
       _transactions.removeListener(_onRepositoryChanged);
@@ -166,7 +169,34 @@ class _DashboardScreenState extends State<DashboardScreen>
     _tabPagesInitialized = true;
     _repositoriesInitialized = true;
     _widgetClickSub ??= HomeWidgetService.registerClickCallback(_handleWidgetUri);
+    _syncChannel.setMethodCallHandler((call) async {
+      if (call.method == 'onTransactionAdded') {
+        await _reloadStorage();
+      }
+    });
     _syncHomeWidget();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _reloadStorage();
+    }
+  }
+
+  Future<void> _reloadStorage() async {
+    if (!_repositoriesInitialized) return;
+    try {
+      await _transactions.reload();
+      await _settings.load();
+      if (mounted) {
+        setState(() {
+          _tabPages = _buildTabPages();
+        });
+      }
+    } catch (e) {
+      debugPrint('Error reloading transactions from storage: $e');
+    }
   }
 
   void _onRepositoryChanged() {

@@ -10,6 +10,12 @@ Use this note to link decisions.
 
 ## Current Decisions
 
+- Revamp Real-Time Insight AI on Analytics screen: Replaced static placeholder with a hybrid AI analytics engine (`AnalyticsAiService`) that dynamically evaluates the user's real transactions (category dominance, weekly velocity spikes, budget pacing, potential savings) with plain-English conversational tips. Replaced generic AI star sparkles with dignified financial trend icons (`PhosphorIcons.chartLineUp`), removed emojis from badges, and provided an interactive `InsightDetailSheet` with actionable steps and on-demand Gemini 2.5 Flash refresh.
+- Activity Matrix 12-Month Scrollable Picker: Expanded the month selector from 4 static months to all 12 calendar months (Jan–Dec) inside a bounded scrollable list with persistent scrollbar thumbs and smooth physics.
+- In-App Real-Time Sync from Android Widget: Added a native `BroadcastReceiver` (`com.kharcha.kharcha.TRANSACTION_ADDED`) and Flutter `MethodChannel("com.kharcha.app/sync")` paired with `TransactionRepository.reload()`. Any transaction added via the home screen widget is immediately refreshed into history, budget tally, weekly charts, and home screen without requiring manual app reloads.
+- RenderFlex Overflow Prevention: Implemented `Flexible` and `Expanded` with `maxLines: 2` and `TextOverflow.ellipsis` on merchant names, transaction rows, and detail cards across `HistoryScreen` and `AddTransactionSheet` to safely handle long merchant labels on narrow screens.
+- Voice Widget Touch Behavior & Pause Calibration: Configured the native voice bottom sheet to dismiss only on outside taps (`setCanceledOnTouchOutside(true)`), keeping the pop-up open when interacting inside the card or on non-field regions. Speech recognition automatically terminates on natural speaking pauses via native silence timeouts and speech debounce timers.
+- STRICT DEPLOYMENT POLICY: NEVER push to GitHub automatically. ONLY push to GitHub when the user explicitly instructs to push. All code, design, and logic changes must be built, tested, and verified locally by the user first before pushing to remote.
 - Implement instant native Android BottomSheetDialog for widget voice capture in `VoiceWidgetActivity`: Replace slow Google Assistant IPC with direct `SpeechRecognizer` binding, providing instant (<50ms) slide-up presentation, real-time acoustic waveform animations via `onRmsChanged`, and a Review & Confirm card with editable fields (Amount, Category, Merchant) before persisting to `FlutterSharedPreferences`.
 - Tune speech pause tolerance across Flutter (`SpeechListenOptions.pauseFor = 4s`) and Android native recognizer (`EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS = 4000L`), allowing users 4 seconds of silence to think while speaking without premature speech termination.
 - Overhaul category icons and container housings across the entire app: Eliminate literal cartoon icons (`hamburger`, `popcorn`, `car`, `pill`) and replace with mature, architectural metaphors (`forkKnife`, `carSimple`, `tote`, `ticket`, `firstAidKit`, `receipt`, `bookOpen`, `basket`, `airplaneTilt`, `tag`) using `PhosphorIconsStyle.fill` at 24px. Replace heavy solid black 52×52 boxes with 48×48 / 50×50 continuous-corner squircles tinted with centralized `AppColors` category pastels and matching rich foreground accents.
@@ -17,15 +23,11 @@ Use this note to link decisions.
 - Dynamically synchronize currency symbol formatting (`$currency 0`) between Flutter `AppSettingsRepository` and native Android `KharchaWidgetProvider` `RemoteViews`, ensuring home screen widgets display the user's selected currency symbol accurately without full app launches.
 - Provide native Android Toast feedback upon speech recognition cancellation or silence timeout in `VoiceWidgetActivity` to avoid silent screen dismissals on the home screen wallpaper.
 - Enforce strict word boundaries (`\b`) on numerical multipliers (`k\b`, `hazar\b`, `lakh\b`, `crore\b`) in both Flutter Dart and Android Kotlin voice parsers. This guarantees Urdu prepositions (`ka`, `ki`, `ke`) are never confused with the English `k` (thousands) multiplier, preventing 1000x amount inflation on colloquial spoken inputs.
-
 - Implement in-widget voice logging using native Android `VoiceWidgetActivity` and `RecognizerIntent.ACTION_RECOGNIZE_SPEECH` to avoid opening the full Flutter app window, parsing and saving transactions directly into `FlutterSharedPreferences` and updating the widget `RemoteViews` on the home screen.
-
 - Implement native Android Home Screen Widget via `home_widget` providing at-a-glance daily spending and one-tap deep links (`kharcha://capture/voice`, `kharcha://capture/scan`, `kharcha://capture/manual`) that open the app directly into the requested capture mode without blind background saves.
-
 - Ensure Google OAuth always prompts for account selection by calling `GoogleSignIn().signOut()` before `signIn()`.
 - Use `permission_handler` to proactively request OS-level runtime audio permissions when navigating to Voice capture.
 - Standardize weekly chart empty slots using `AppColors.chartTrack` with a subtle circular dot at the base and 14px headroom at the pill top.
-
 - Use Obsidian as the living memory graph for Kharcha.
 - Keep `Project_Context/` as the formal handoff pack.
 - Use [[Kharcha Home]] as the vault hub.

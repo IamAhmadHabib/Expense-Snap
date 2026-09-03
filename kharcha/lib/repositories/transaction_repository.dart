@@ -17,6 +17,7 @@ abstract class TransactionRepositoryContract implements Listenable {
   Map<String, double> get categoryTotals;
 
   Future<void> load();
+  Future<void> reload();
   Future<Transaction> saveDraft(
     TransactionDraft draft, {
     String? transactionId,
@@ -112,6 +113,12 @@ class TransactionRepository extends ChangeNotifier
       _sort();
     }
     notifyListeners();
+  }
+
+  @override
+  Future<void> reload() async {
+    await store.reload();
+    await load();
   }
 
   @override

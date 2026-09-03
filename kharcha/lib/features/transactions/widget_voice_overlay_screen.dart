@@ -33,6 +33,7 @@ class _WidgetVoiceOverlayScreenState extends State<WidgetVoiceOverlayScreen>
     with TickerProviderStateMixin {
   _OverlayVoiceState _state = _OverlayVoiceState.listening;
   final SpeechRecognitionService _speechService = SpeechRecognitionService();
+  Timer? _silenceDebounceTimer;
   String _currentTranscript = '';
   double _soundLevel = 0.0;
 
@@ -109,6 +110,7 @@ class _WidgetVoiceOverlayScreenState extends State<WidgetVoiceOverlayScreen>
 
   @override
   void dispose() {
+    _silenceDebounceTimer?.cancel();
     _waveController.dispose();
     _slideController.dispose();
     _amountController.dispose();
@@ -163,6 +165,14 @@ class _WidgetVoiceOverlayScreenState extends State<WidgetVoiceOverlayScreen>
           if (mounted) {
             setState(() => _currentTranscript = text);
           }
+          if (text.trim().isNotEmpty) {
+            _silenceDebounceTimer?.cancel();
+            _silenceDebounceTimer = Timer(const Duration(milliseconds: 2200), () {
+              if (mounted && _state == _OverlayVoiceState.listening && _currentTranscript.trim().isNotEmpty) {
+                _finishListening();
+              }
+            });
+          }
         },
         onSoundLevelChange: (level) {
           if (mounted) {
@@ -174,6 +184,7 @@ class _WidgetVoiceOverlayScreenState extends State<WidgetVoiceOverlayScreen>
   }
 
   Future<void> _finishListening() async {
+    _silenceDebounceTimer?.cancel();
     if (_state != _OverlayVoiceState.listening) return;
     final scope = RepositoryScope.maybeOf(context);
     await _speechService.stopListening();

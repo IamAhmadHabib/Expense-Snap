@@ -11,6 +11,8 @@ import 'package:kharcha/models/transaction.dart';
 import 'package:kharcha/repositories/repository_scope.dart';
 import 'package:kharcha/repositories/transaction_repository.dart';
 import 'dart:math' as math;
+import '../../services/analytics_ai_service.dart';
+import 'widgets/real_time_insight_card.dart';
 
 class AnalyticsScreen extends StatefulWidget {
   final VoidCallback? onBack;
@@ -29,6 +31,7 @@ class AnalyticsScreen extends StatefulWidget {
 
 class _AnalyticsScreenState extends State<AnalyticsScreen>
     with TickerProviderStateMixin {
+  final _aiService = AnalyticsAiService();
   String _selectedPeriod = 'Days';
   int _selectedActivityIndex = -1;
   String _matrixMonthLabel = DateFormat(
@@ -1199,12 +1202,18 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
 
   void _showMonthPicker(BuildContext context) {
     HapticFeedback.selectionClick();
-    final months = ['JAN 2026', 'FEB 2026', 'MAR 2026', 'APR 2026'];
+    final currentYear = DateTime.now().year;
+    final months = List.generate(12, (index) {
+      final d = DateTime(currentYear, index + 1);
+      return DateFormat('MMM yyyy').format(d).toUpperCase();
+    });
+
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
         decoration: const BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
@@ -1213,43 +1222,82 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Select Month',
-              style: AppTypography.h3.copyWith(fontWeight: FontWeight.w900),
-            ),
-            const SizedBox(height: 24),
-            ...months.map(
-              (m) => ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(
-                  m,
-                  style: AppTypography.bodySmall.copyWith(
-                    fontWeight: _matrixMonthLabel == m
-                        ? FontWeight.w900
-                        : FontWeight.w500,
-                    color: _matrixMonthLabel == m
-                        ? AppColors.primary
-                        : AppColors.primary.withValues(alpha: 0.6),
-                  ),
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(2),
                 ),
-                trailing: _matrixMonthLabel == m
-                    ? Icon(
-                        PhosphorIcons.check(PhosphorIconsStyle.bold),
-                        color: AppColors.accent,
-                        size: 20,
-                      )
-                    : null,
-                onTap: () {
-                  HapticFeedback.lightImpact();
-                  setState(() {
-                    _matrixMonthLabel = m;
-                    _selectedActivityIndex = -1;
-                  });
-                  Navigator.pop(context);
-                },
               ),
             ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Select Month',
+                  style: AppTypography.h3.copyWith(fontWeight: FontWeight.w900),
+                ),
+                Text(
+                  '$currentYear',
+                  style: AppTypography.caption.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primary.withValues(alpha: 0.4),
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 16),
+            SizedBox(
+              height: 240,
+              child: Scrollbar(
+                thumbVisibility: true,
+                radius: const Radius.circular(4),
+                child: ListView.separated(
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  itemCount: months.length,
+                  separatorBuilder: (_, index) => Divider(
+                    height: 1,
+                    thickness: 0.5,
+                    color: AppColors.profileDivider.withValues(alpha: 0.4),
+                  ),
+                  itemBuilder: (context, index) {
+                    final m = months[index];
+                    final isSelected = _matrixMonthLabel == m;
+                    return ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                      title: Text(
+                        m,
+                        style: AppTypography.bodySmall.copyWith(
+                          fontWeight: isSelected ? FontWeight.w900 : FontWeight.w500,
+                          color: isSelected
+                              ? AppColors.primary
+                              : AppColors.primary.withValues(alpha: 0.6),
+                        ),
+                      ),
+                      trailing: isSelected
+                          ? Icon(
+                              PhosphorIcons.check(PhosphorIconsStyle.bold),
+                              color: AppColors.accent,
+                              size: 20,
+                            )
+                          : null,
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        setState(() {
+                          _matrixMonthLabel = m;
+                          _selectedActivityIndex = -1;
+                        });
+                        Navigator.pop(context);
+                      },
+                    );
+                  },
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -1294,66 +1342,27 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
   }
 
   Widget _buildFloatingInsight() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.insightSurface.withValues(alpha: 0.95),
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.2),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [AppColors.accent, AppColors.amberGold],
-              ),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Icon(
-              PhosphorIcons.lightbulb(PhosphorIconsStyle.fill),
-              color: AppColors.primary,
-              size: 24,
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Real-time Insight',
-                  style: AppTypography.caption.copyWith(
-                    color: AppColors.accent,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Spending pattern suggests a Rs. 2,500 saving potential this week.',
-                  style: AppTypography.bodySmall.copyWith(
-                    color: AppColors.surface,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Icon(
-            PhosphorIcons.caretRight(PhosphorIconsStyle.bold),
-            color: AppColors.surface.withValues(alpha: 0.3),
-            size: 16,
-          ),
-        ],
-      ),
+    final settings = RepositoryScope.maybeOf(context)?.settings.settings;
+    final monthlyBudget = settings?.monthlyBudget ?? 0.0;
+    final currency = settings?.currencySymbol ?? 'Rs.';
+
+    final insight = _aiService.generateInsight(
+      transactions: _repository.transactions,
+      monthlyBudget: monthlyBudget,
+      currency: currency,
+    );
+
+    return RealTimeInsightCard(
+      insight: insight,
+      currency: currency,
+      onRegenerate: () async {
+        return await _aiService.generateGeminiDeepDive(
+          baseInsight: insight,
+          transactions: _repository.transactions,
+          monthlyBudget: monthlyBudget,
+          currency: currency,
+        );
+      },
     );
   }
 

@@ -47,6 +47,8 @@ class SpeechRecognitionService {
     required ValueChanged<String> onResult,
     ValueChanged<double>? onSoundLevelChange,
     String? localeId,
+    Duration pauseFor = const Duration(seconds: 3),
+    Duration listenFor = const Duration(seconds: 30),
   }) async {
     if (!_isInitialized) {
       final ok = await initialize();
@@ -60,11 +62,11 @@ class SpeechRecognitionService {
         },
         onSoundLevelChange: onSoundLevelChange,
         listenOptions: stt.SpeechListenOptions(
-          listenMode: stt.ListenMode.dictation,
+          listenMode: stt.ListenMode.confirmation,
           partialResults: true,
           cancelOnError: false,
-          pauseFor: const Duration(seconds: 4),
-          listenFor: const Duration(seconds: 35),
+          pauseFor: pauseFor,
+          listenFor: listenFor,
           localeId: localeId,
         ),
       );

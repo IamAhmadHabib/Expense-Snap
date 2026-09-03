@@ -1308,6 +1308,7 @@ class _VoiceTabViewState extends State<_VoiceTabView>
   late TextEditingController _amountController;
   late TextEditingController _noteController;
   final SpeechRecognitionService _speechService = SpeechRecognitionService();
+  Timer? _silenceDebounceTimer;
 
   late AnimationController _micBreathingController;
   late AnimationController _processingPulseController;
@@ -1455,6 +1456,7 @@ class _VoiceTabViewState extends State<_VoiceTabView>
   @override
   void dispose() {
     _hintTimer?.cancel();
+    _silenceDebounceTimer?.cancel();
     _amountController.dispose();
     _noteController.dispose();
     _speechService.cancelListening();
@@ -1468,6 +1470,7 @@ class _VoiceTabViewState extends State<_VoiceTabView>
 
   Future<void> _toggleListening() async {
     HapticFeedback.mediumImpact();
+    _silenceDebounceTimer?.cancel();
     if (!_hasPermission) {
       final granted = await _requestPermission();
       if (!granted) return;
@@ -1522,6 +1525,16 @@ class _VoiceTabViewState extends State<_VoiceTabView>
           setState(() {
             _currentTranscript = words;
           });
+          // Auto-stop after 2.2s of silence once words have been spoken
+          if (words.trim().isNotEmpty) {
+            _silenceDebounceTimer?.cancel();
+            _silenceDebounceTimer = Timer(const Duration(milliseconds: 2200), () {
+              if (mounted && _state == _VoiceState.listening && _currentTranscript.trim().isNotEmpty) {
+                _speechService.stopListening();
+                _startProcessing();
+              }
+            });
+          }
         },
         onSoundLevelChange: (level) {
           if (!mounted) return;
@@ -1553,6 +1566,7 @@ class _VoiceTabViewState extends State<_VoiceTabView>
   }
 
   Future<void> _startProcessing() async {
+    _silenceDebounceTimer?.cancel();
     final transcript = _currentTranscript.trim();
     if (transcript.isEmpty) {
       setState(() => _state = _VoiceState.idle);
@@ -2271,28 +2285,36 @@ class _VoiceTabViewState extends State<_VoiceTabView>
       opacity: visible ? 1.0 : 0.0,
       duration: const Duration(milliseconds: 300),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            icon,
-            size: 20,
-            color: AppColors.headerCard.withValues(alpha: 0.6),
+          Padding(
+            padding: const EdgeInsets.only(top: 2.0),
+            child: Icon(
+              icon,
+              size: 20,
+              color: AppColors.headerCard.withValues(alpha: 0.6),
+            ),
           ),
           const SizedBox(width: 12),
-          visible && typeIn
-              ? _TypingText(
-                  text: text,
-                  style: AppTypography.body.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.headerCard,
+          Expanded(
+            child: visible && typeIn
+                ? _TypingText(
+                    text: text,
+                    style: AppTypography.body.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.headerCard,
+                    ),
+                  )
+                : Text(
+                    text,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.body.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.headerCard,
+                    ),
                   ),
-                )
-              : Text(
-                  text,
-                  style: AppTypography.body.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.headerCard,
-                  ),
-                ),
+          ),
         ],
       ),
     );
@@ -2610,46 +2632,50 @@ class _VoiceTabViewState extends State<_VoiceTabView>
               fontSize: 13,
             ),
           ),
-          const Spacer(),
-          isEditing
-              ? SizedBox(
-                  width: 140,
-                  height: 24,
-                  child: TextField(
-                    controller: TextEditingController(text: value),
+          const SizedBox(width: 8),
+          Expanded(
+            child: isEditing
+                ? SizedBox(
+                    height: 24,
+                    child: TextField(
+                      controller: TextEditingController(text: value),
+                      textAlign: TextAlign.end,
+                      style: AppTypography.body.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.primary,
+                      ),
+                      decoration: InputDecoration(
+                        contentPadding: EdgeInsets.zero,
+                        isDense: true,
+                        border: UnderlineInputBorder(
+                          borderSide: BorderSide(
+                            color: AppColors.primary.withValues(alpha: 0.08),
+                          ),
+                        ),
+                        enabledBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(
+                            color: AppColors.primary.withValues(alpha: 0.08),
+                          ),
+                        ),
+                        focusedBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(
+                            color: AppColors.primary.withValues(alpha: 0.12),
+                          ),
+                        ),
+                      ),
+                    ),
+                  )
+                : Text(
+                    value,
                     textAlign: TextAlign.end,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: AppTypography.body.copyWith(
                       fontWeight: FontWeight.w800,
                       color: AppColors.primary,
                     ),
-                    decoration: InputDecoration(
-                      contentPadding: EdgeInsets.zero,
-                      isDense: true,
-                      border: UnderlineInputBorder(
-                        borderSide: BorderSide(
-                          color: AppColors.primary.withValues(alpha: 0.08),
-                        ),
-                      ),
-                      enabledBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(
-                          color: AppColors.primary.withValues(alpha: 0.08),
-                        ),
-                      ),
-                      focusedBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(
-                          color: AppColors.primary.withValues(alpha: 0.12),
-                        ),
-                      ),
-                    ),
                   ),
-                )
-              : Text(
-                  value,
-                  style: AppTypography.body.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.primary,
-                  ),
-                ),
+          ),
         ],
       ),
     );

@@ -11,6 +11,10 @@ tags: [tasks, open]
 - [x] Fix Urdu preposition multiplier bug (`ka/ki/ke` -> `k`) and expand Pakistani colloquial vocabulary across Dart and Kotlin parsers (Completed).
 - [x] In-Widget Voice Logging without opening the main app (Native VoiceWidgetActivity + VoiceTransactionParser) (Completed).
 - [x] Native Home Screen Widget with today's spending glance and instant Voice capture shortcut (Completed).
+- [x] Real-Time Sync between Home Screen Widget and In-App History & Budget (MethodChannel + BroadcastReceiver) (Completed).
+- [x] Activity Matrix 12-Month scrollable picker up to December (Completed).
+- [x] Revamp Real-Time Insight AI on Analytics screen: dynamic transaction intelligence, plain-English action plan, obsidian card, interactive diagnosis sheet (Completed).
+- [x] Fix RenderFlex text overflow issues on merchant names and transaction detail cards (Completed).
 - Enable Email/Password sign-in provider in Firebase Console for `kharcha-expense-snap` if not already enabled.
 - Implement Firebase Storage-backed `AttachmentService` behind the Phase C contract.
 - Enable Firebase intentionally during integration testing with `--dart-define=KHARCHA_FIREBASE_ENABLED=true`.
