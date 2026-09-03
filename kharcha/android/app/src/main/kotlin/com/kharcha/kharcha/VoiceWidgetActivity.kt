@@ -47,7 +47,7 @@ class VoiceWidgetActivity : Activity() {
     private var speechRecognizer: SpeechRecognizer? = null
     private var isListening = false
     private var capturedTranscript: String = ""
-    private var parsedTransaction: VoiceTransactionParser.ParsedVoiceExpense? = null
+    private var parsedTransaction: ParsedVoiceExpense? = null
 
     // UI elements
     private lateinit var layoutBottomSheet: LinearLayout
@@ -268,7 +268,7 @@ class VoiceWidgetActivity : Activity() {
         try {
             speechRecognizer?.stopListening()
             speechRecognizer?.destroy()
-        } catch (_) {}
+        } catch (e: Exception) {}
         speechRecognizer = null
         isListening = false
         resetWaveform()
@@ -348,9 +348,8 @@ class VoiceWidgetActivity : Activity() {
         try {
             val amountText = etAmount.text.toString().trim()
             val amount = amountText.toDoubleOrNull() ?: parsedTransaction?.amount ?: 0.0
-            val merchant = etMerchant.text.toString().trim().ifBlank {
-                parsedTransaction?.merchant?.ifBlank { "Voice Expense" } ?: "Voice Expense"
-            }
+            val defaultMerchant = parsedTransaction?.merchant?.takeIf { it.isNotBlank() } ?: "Voice Expense"
+            val merchant = etMerchant.text.toString().trim().ifBlank { defaultMerchant }
             val category = parsedTransaction?.category ?: "Food & Dining"
             val rawNote = capturedTranscript.ifBlank { merchant }
             val isIncome = parsedTransaction?.isIncome ?: false
@@ -434,7 +433,7 @@ class VoiceWidgetActivity : Activity() {
                                 todayCount++
                             }
                         }
-                    } catch (_: Exception) {}
+                    } catch (e: Exception) {}
                 }
             }
 
@@ -496,7 +495,7 @@ class VoiceWidgetActivity : Activity() {
                 val json = JSONObject(settingsRaw)
                 val symbol = json.optString("currencySymbol", "")
                 if (symbol.isNotBlank()) return symbol
-            } catch (_: Exception) {}
+            } catch (e: Exception) {}
         }
         return "Rs."
     }
@@ -517,7 +516,7 @@ class VoiceWidgetActivity : Activity() {
                 setTextViewText(R.id.widget_today_count, todayCount)
                 setTextViewText(R.id.widget_currency_tag, currency)
 
-                // Voice Action -> Native VoiceWidgetActivity (instant bottom sheet!)
+                // Voice Action -> Instant Native Voice Bottom Sheet Dialog
                 val voiceIntent = HomeWidgetLaunchIntent.getActivity(
                     context,
                     VoiceWidgetActivity::class.java,
