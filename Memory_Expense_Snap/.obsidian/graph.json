@@ -5,18 +5,103 @@
   "showAttachments": false,
   "hideUnresolved": false,
   "showOrphans": true,
-  "collapse-color-groups": true,
-  "colorGroups": [],
+  "collapse-color-groups": false,
+  "colorGroups": [
+    {
+      "query": "path:00_Start_Here",
+      "color": {
+        "a": 1,
+        "rgb": 15049532
+      }
+    },
+    {
+      "query": "path:01_Product",
+      "color": {
+        "a": 1,
+        "rgb": 1096065
+      }
+    },
+    {
+      "query": "path:02_Architecture",
+      "color": {
+        "a": 1,
+        "rgb": 3900150
+      }
+    },
+    {
+      "query": "path:03_Design",
+      "color": {
+        "a": 1,
+        "rgb": 9133302
+      }
+    },
+    {
+      "query": "path:04_Screens",
+      "color": {
+        "a": 1,
+        "rgb": 16007006
+      }
+    },
+    {
+      "query": "path:05_Features",
+      "color": {
+        "a": 1,
+        "rgb": 440020
+      }
+    },
+    {
+      "query": "path:06_Code_Map",
+      "color": {
+        "a": 1,
+        "rgb": 16096779
+      }
+    },
+    {
+      "query": "path:07_Roadmap",
+      "color": {
+        "a": 1,
+        "rgb": 6514417
+      }
+    },
+    {
+      "query": "path:08_Decisions",
+      "color": {
+        "a": 1,
+        "rgb": 15680580
+      }
+    },
+    {
+      "query": "path:09_Tasks",
+      "color": {
+        "a": 1,
+        "rgb": 8702998
+      }
+    },
+    {
+      "query": "path:10_Templates",
+      "color": {
+        "a": 1,
+        "rgb": 9741240
+      }
+    },
+    {
+      "query": "Welcome",
+      "color": {
+        "a": 1,
+        "rgb": 16436245
+      }
+    }
+  ],
   "collapse-display": true,
-  "showArrow": false,
+  "showArrow": true,
   "textFadeMultiplier": 0,
-  "nodeSizeMultiplier": 1,
-  "lineSizeMultiplier": 1,
+  "nodeSizeMultiplier": 1.25,
+  "lineSizeMultiplier": 1.1,
   "collapse-forces": true,
   "centerStrength": 0.518713248970312,
   "repelStrength": 10,
   "linkStrength": 1,
   "linkDistance": 250,
-  "scale": 0.33163039907861813,
+  "scale": 0.5203688319140953,
   "close": true
 }
