@@ -2,7 +2,8 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/root_container"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:fitsSystemWindows="true">
 
     <!-- Outside Scrim to dismiss on outside tap (strictly above the bottom sheet) -->
     <View
@@ -168,7 +169,7 @@
                 android:layout_marginTop="18dp"
                 android:background="@drawable/btn_add_expense_bg"
                 android:gravity="center"
-                android:text="Done Speaking ✓"
+                android:text="Done Speaking"
                 android:textColor="#FFFFFF"
                 android:textSize="15sp"
                 android:textStyle="bold" />
@@ -305,7 +306,7 @@
                     android:layout_weight="1"
                     android:background="@drawable/btn_secondary_bg"
                     android:gravity="center"
-                    android:text"
+                    android:text="Retry"
                     android:textColor="#1C1C1E"
                     android:textSize="15sp"
                     android:textStyle="bold" />

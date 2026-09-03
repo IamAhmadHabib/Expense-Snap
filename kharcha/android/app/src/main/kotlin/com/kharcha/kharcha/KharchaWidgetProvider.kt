@@ -118,14 +118,16 @@ class KharchaWidgetProvider : HomeWidgetProvider() {
         appWidgetIds: IntArray,
         widgetData: SharedPreferences
     ) {
-        // Recalculate today's metrics dynamically based on current day
-        val metrics = calculateTodayMetrics(context)
+        // Recalculate metrics dynamically based on current day and budget
+        val metrics = WidgetDataHelper.calculateMetrics(context)
 
         for (appWidgetId in appWidgetIds) {
             val views = RemoteViews(context.packageName, R.layout.kharcha_widget_layout).apply {
-                setTextViewText(R.id.widget_today_amount, metrics.amount)
-                setTextViewText(R.id.widget_today_count, metrics.count)
+                setTextViewText(R.id.widget_today_amount, metrics.todayAmount)
+                setTextViewText(R.id.widget_today_count, metrics.todayCount)
                 setTextViewText(R.id.widget_currency_tag, metrics.currency)
+                setProgressBar(R.id.widget_budget_progress, 100, metrics.budgetProgressInt, false)
+                setTextViewText(R.id.widget_remaining_budget, metrics.remainingBudgetFormatted)
 
                 // Voice Action -> Instant Native Voice Bottom Sheet Dialog
                 val voiceIntent = HomeWidgetLaunchIntent.getActivity(
@@ -135,19 +137,19 @@ class KharchaWidgetProvider : HomeWidgetProvider() {
                 )
                 setOnClickPendingIntent(R.id.widget_action_voice, voiceIntent)
 
-                // Scan Action (Deep Link: kharcha://capture/scan)
+                // Scan Action -> Instant Native Scan Activity
                 val scanIntent = HomeWidgetLaunchIntent.getActivity(
                     context,
-                    MainActivity::class.java,
-                    Uri.parse("kharcha://capture/scan")
+                    ScanWidgetActivity::class.java,
+                    null
                 )
                 setOnClickPendingIntent(R.id.widget_action_scan, scanIntent)
 
-                // Manual Action (Deep Link: kharcha://capture/manual)
+                // Manual Action -> Instant Native Manual Bottom Sheet
                 val manualIntent = HomeWidgetLaunchIntent.getActivity(
                     context,
-                    MainActivity::class.java,
-                    Uri.parse("kharcha://capture/manual")
+                    ManualWidgetActivity::class.java,
+                    null
                 )
                 setOnClickPendingIntent(R.id.widget_action_manual, manualIntent)
 

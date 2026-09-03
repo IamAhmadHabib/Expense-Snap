@@ -1,0 +1,474 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root_manual_view"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#80000000"
+    android:fitsSystemWindows="true">
+
+    <LinearLayout
+        android:id="@+id/layout_manual_bottom_sheet"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:background="@drawable/bottom_sheet_card_bg"
+        android:clickable="true"
+        android:focusable="true"
+        android:orientation="vertical"
+        android:paddingStart="20dp"
+        android:paddingTop="12dp"
+        android:paddingEnd="20dp"
+        android:paddingBottom="24dp">
+
+        <!-- Drag Handle -->
+        <View
+            android:layout_width="40dp"
+            android:layout_height="4dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginBottom="12dp"
+            android:background="@drawable/drag_handle_pill" />
+
+        <!-- Header Row -->
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentStart="true"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Quick Expense"
+                    android:textColor="#1A1612"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="Log transaction instantly"
+                    android:textColor="#8C7E6E"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/btn_manual_close"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_alignParentEnd="true"
+                android:layout_centerVertical="true"
+                android:background="@drawable/category_badge_bg"
+                android:gravity="center"
+                android:text="✕"
+                android:textColor="#8C7E6E"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+        </RelativeLayout>
+
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:overScrollMode="never"
+            android:scrollbars="none">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <!-- Amount Input Field -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:background="@drawable/edit_field_bg"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="14dp">
+
+                    <TextView
+                        android:id="@+id/tv_currency_prefix"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Rs."
+                        android:textColor="#E5A33C"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+
+                    <EditText
+                        android:id="@+id/et_manual_amount"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_marginStart="10dp"
+                        android:layout_weight="1"
+                        android:background="@null"
+                        android:hint="0"
+                        android:imeOptions="actionNext"
+                        android:inputType="numberDecimal"
+                        android:textColor="#1A1612"
+                        android:textColorHint="#C2B8AD"
+                        android:textSize="24sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <!-- Quick Presets Row -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/btn_preset_100"
+                        android:layout_width="0dp"
+                        android:layout_height="32dp"
+                        android:layout_marginEnd="6dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/preset_chip_bg"
+                        android:gravity="center"
+                        android:text="+100"
+                        android:textColor="#4A3E33"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/btn_preset_500"
+                        android:layout_width="0dp"
+                        android:layout_height="32dp"
+                        android:layout_marginEnd="6dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/preset_chip_bg"
+                        android:gravity="center"
+                        android:text="+500"
+                        android:textColor="#4A3E33"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/btn_preset_1000"
+                        android:layout_width="0dp"
+                        android:layout_height="32dp"
+                        android:layout_marginEnd="6dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/preset_chip_bg"
+                        android:gravity="center"
+                        android:text="+1,000"
+                        android:textColor="#4A3E33"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/btn_preset_5000"
+                        android:layout_width="0dp"
+                        android:layout_height="32dp"
+                        android:layout_marginEnd="6dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/preset_chip_bg"
+                        android:gravity="center"
+                        android:text="+5,000"
+                        android:textColor="#4A3E33"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/btn_preset_clear"
+                        android:layout_width="wrap_content"
+                        android:layout_height="32dp"
+                        android:background="@drawable/preset_chip_bg"
+                        android:gravity="center"
+                        android:paddingStart="10dp"
+                        android:paddingEnd="10dp"
+                        android:text="Clear"
+                        android:textColor="#8C7E6E"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <!-- Note / Merchant -->
+                <EditText
+                    android:id="@+id/et_manual_merchant"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:layout_marginTop="12dp"
+                    android:background="@drawable/edit_field_bg"
+                    android:hint="Merchant or note (e.g. Chai, Groceries)"
+                    android:imeOptions="actionDone"
+                    android:inputType="textCapSentences"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="14dp"
+                    android:textColor="#1A1612"
+                    android:textColorHint="#A89B8C"
+                    android:textSize="14sp" />
+
+                <!-- Category Selector -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:letterSpacing="0.06"
+                    android:text="CATEGORY"
+                    android:textColor="#8C7E6E"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
+
+                <HorizontalScrollView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:overScrollMode="never"
+                    android:scrollbars="none">
+
+                    <LinearLayout
+                        android:id="@+id/layout_category_chips"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:id="@+id/chip_cat_food"
+                            android:layout_width="wrap_content"
+                            android:layout_height="34dp"
+                            android:layout_marginEnd="6dp"
+                            android:background="@drawable/chip_selected_bg"
+                            android:gravity="center"
+                            android:paddingStart="12dp"
+                            android:paddingEnd="12dp"
+                            android:text="Food &amp; Dining"
+                            android:textColor="#FFFFFF"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/chip_cat_transport"
+                            android:layout_width="wrap_content"
+                            android:layout_height="34dp"
+                            android:layout_marginEnd="6dp"
+                            android:background="@drawable/chip_unselected_bg"
+                            android:gravity="center"
+                            android:paddingStart="12dp"
+                            android:paddingEnd="12dp"
+                            android:text="Transportation"
+                            android:textColor="#1C1C1E"
+                            android:textSize="12sp" />
+
+                        <TextView
+                            android:id="@+id/chip_cat_groceries"
+                            android:layout_width="wrap_content"
+                            android:layout_height="34dp"
+                            android:layout_marginEnd="6dp"
+                            android:background="@drawable/chip_unselected_bg"
+                            android:gravity="center"
+                            android:paddingStart="12dp"
+                            android:paddingEnd="12dp"
+                            android:text="Groceries"
+                            android:textColor="#1C1C1E"
+                            android:textSize="12sp" />
+
+                        <TextView
+                            android:id="@+id/chip_cat_shopping"
+                            android:layout_width="wrap_content"
+                            android:layout_height="34dp"
+                            android:layout_marginEnd="6dp"
+                            android:background="@drawable/chip_unselected_bg"
+                            android:gravity="center"
+                            android:paddingStart="12dp"
+                            android:paddingEnd="12dp"
+                            android:text="Shopping"
+                            android:textColor="#1C1C1E"
+                            android:textSize="12sp" />
+
+                        <TextView
+                            android:id="@+id/chip_cat_bills"
+                            android:layout_width="wrap_content"
+                            android:layout_height="34dp"
+                            android:layout_marginEnd="6dp"
+                            android:background="@drawable/chip_unselected_bg"
+                            android:gravity="center"
+                            android:paddingStart="12dp"
+                            android:paddingEnd="12dp"
+                            android:text="Bills &amp; Utilities"
+                            android:textColor="#1C1C1E"
+                            android:textSize="12sp" />
+
+                        <TextView
+                            android:id="@+id/chip_cat_health"
+                            android:layout_width="wrap_content"
+                            android:layout_height="34dp"
+                            android:layout_marginEnd="6dp"
+                            android:background="@drawable/chip_unselected_bg"
+                            android:gravity="center"
+                            android:paddingStart="12dp"
+                            android:paddingEnd="12dp"
+                            android:text="Health"
+                            android:textColor="#1C1C1E"
+                            android:textSize="12sp" />
+
+                        <TextView
+                            android:id="@+id/chip_cat_entertainment"
+                            android:layout_width="wrap_content"
+                            android:layout_height="34dp"
+                            android:layout_marginEnd="6dp"
+                            android:background="@drawable/chip_unselected_bg"
+                            android:gravity="center"
+                            android:paddingStart="12dp"
+                            android:paddingEnd="12dp"
+                            android:text="Entertainment"
+                            android:textColor="#1C1C1E"
+                            android:textSize="12sp" />
+
+                        <TextView
+                            android:id="@+id/chip_cat_general"
+                            android:layout_width="wrap_content"
+                            android:layout_height="34dp"
+                            android:background="@drawable/chip_unselected_bg"
+                            android:gravity="center"
+                            android:paddingStart="12dp"
+                            android:paddingEnd="12dp"
+                            android:text="General"
+                            android:textColor="#1C1C1E"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+                </HorizontalScrollView>
+
+                <!-- Payment Method & Date Row -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:orientation="horizontal">
+
+                    <!-- Payment Method -->
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:letterSpacing="0.06"
+                            android:text="PAYMENT"
+                            android:textColor="#8C7E6E"
+                            android:textSize="10sp"
+                            android:textStyle="bold" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:id="@+id/chip_pay_cash"
+                                android:layout_width="0dp"
+                                android:layout_height="32dp"
+                                android:layout_marginEnd="4dp"
+                                android:layout_weight="1"
+                                android:background="@drawable/chip_selected_bg"
+                                android:gravity="center"
+                                android:text="Cash"
+                                android:textColor="#FFFFFF"
+                                android:textSize="11sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:id="@+id/chip_pay_card"
+                                android:layout_width="0dp"
+                                android:layout_height="32dp"
+                                android:layout_marginEnd="4dp"
+                                android:layout_weight="1"
+                                android:background="@drawable/chip_unselected_bg"
+                                android:gravity="center"
+                                android:text="Card"
+                                android:textColor="#1C1C1E"
+                                android:textSize="11sp" />
+
+                            <TextView
+                                android:id="@+id/chip_pay_easypaisa"
+                                android:layout_width="0dp"
+                                android:layout_height="32dp"
+                                android:layout_weight="1"
+                                android:background="@drawable/chip_unselected_bg"
+                                android:gravity="center"
+                                android:text="EasyPaisa"
+                                android:textColor="#1C1C1E"
+                                android:textSize="10sp" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <!-- Date Picker Button -->
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:letterSpacing="0.06"
+                            android:text="DATE"
+                            android:textColor="#8C7E6E"
+                            android:textSize="10sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tv_manual_date"
+                            android:layout_width="wrap_content"
+                            android:layout_height="32dp"
+                            android:layout_marginTop="4dp"
+                            android:background="@drawable/chip_unselected_bg"
+                            android:gravity="center"
+                            android:paddingStart="10dp"
+                            android:paddingEnd="10dp"
+                            android:text="Today"
+                            android:textColor="#1C1C1E"
+                            android:textSize="11sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- Actions Row -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/btn_manual_cancel"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_marginEnd="10dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/btn_secondary_bg"
+                        android:gravity="center"
+                        android:text="Cancel"
+                        android:textColor="#1C1C1E"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/btn_manual_add"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_weight="2"
+                        android:background="@drawable/btn_add_expense_bg"
+                        android:gravity="center"
+                        android:text="Add Expense"
+                        android:textColor="#FFFFFF"
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </LinearLayout>
+        </ScrollView>
+    </LinearLayout>
+</FrameLayout>

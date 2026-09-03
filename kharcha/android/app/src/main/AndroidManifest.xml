@@ -4,6 +4,8 @@
     <uses-permission android:name="android.permission.BLUETOOTH"/>
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN"/>
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT"/>
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
     <application
         android:label="${appName}"
         android:name="${applicationName}"
@@ -68,7 +70,49 @@
             </intent-filter>
         </activity>
 
-        <!-- Kharcha Home Screen AppWidget Receiver -->
+        <!-- Transparent Floating Manual Expense Activity for Home Screen Widget -->
+        <activity
+            android:name=".ManualWidgetActivity"
+            android:theme="@style/TransparentTheme"
+            android:exported="true"
+            android:launchMode="singleInstance"
+            android:excludeFromRecents="true"
+            android:windowSoftInputMode="adjustResize"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+            android:hardwareAccelerated="true">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="kharcha"
+                    android:host="widget"
+                    android:pathPrefix="/manual" />
+            </intent-filter>
+        </activity>
+
+        <!-- Transparent Floating Receipt Scan Activity for Home Screen Widget -->
+        <activity
+            android:name=".ScanWidgetActivity"
+            android:theme="@style/TransparentTheme"
+            android:exported="true"
+            android:launchMode="singleInstance"
+            android:excludeFromRecents="true"
+            android:windowSoftInputMode="adjustResize"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+            android:hardwareAccelerated="true">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="kharcha"
+                    android:host="widget"
+                    android:pathPrefix="/scan" />
+            </intent-filter>
+        </activity>
+
+        <!-- Kharcha Home Screen AppWidget Receiver (4x1) -->
         <receiver
             android:name=".KharchaWidgetProvider"
             android:exported="true">
@@ -81,6 +125,36 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/kharcha_widget_info" />
+        </receiver>
+
+        <!-- Kharcha Home Screen AppWidget Receiver (2x2 Compact) -->
+        <receiver
+            android:name=".KharchaWidget2x2Provider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="android.intent.action.DATE_CHANGED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/kharcha_widget_2x2_info" />
+        </receiver>
+
+        <!-- Kharcha Home Screen AppWidget Receiver (4x2 Dashboard) -->
+        <receiver
+            android:name=".KharchaWidget4x2Provider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="android.intent.action.DATE_CHANGED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/kharcha_widget_4x2_info" />
         </receiver>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->

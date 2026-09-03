@@ -18,6 +18,7 @@ import android.speech.SpeechRecognizer
 import android.view.View
 import android.view.animation.AnimationUtils
 import android.widget.EditText
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
@@ -34,6 +35,10 @@ import java.util.Locale
 import java.util.TimeZone
 import kotlin.math.max
 import kotlin.math.min
+
+import android.view.WindowManager
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 
 class VoiceWidgetActivity : Activity() {
 
@@ -60,6 +65,15 @@ class VoiceWidgetActivity : Activity() {
     private lateinit var etMerchant: EditText
     private lateinit var tvCategoryBadge: TextView
     private lateinit var tvCurrencySymbol: TextView
+    private lateinit var btnCancel: TextView
+    private lateinit var btnAddExpense: TextView
+    private lateinit var btnFallbackTryAgain: TextView
+    private lateinit var btnFallbackManual: TextView
+    private lateinit var rippleVoiceIndicator: View
+    private lateinit var ivMicIcon: ImageView
+
+    private var selectedCategory: String = "Food & Dining"
+    private var currencySymbol: String = "Rs."
 
     // Waveform bars
     private lateinit var waveBar1: View
@@ -72,8 +86,18 @@ class VoiceWidgetActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
         setFinishOnTouchOutside(false)
         setContentView(R.layout.dialog_voice_bottom_sheet)
+
+        val rootView = findViewById<View>(R.id.root_container)
+        ViewCompat.setOnApplyWindowInsetsListener(rootView) { v, insets ->
+            val imeInsets = insets.getInsets(WindowInsetsCompat.Type.ime())
+            val navInsets = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
+            val bottomPadding = max(imeInsets.bottom, navInsets.bottom)
+            v.setPadding(0, 0, 0, bottomPadding)
+            insets
+        }
 
         bindViews()
         setupListeners()
@@ -468,7 +492,7 @@ class VoiceWidgetActivity : Activity() {
                 .putString("currency", currency)
                 .apply()
 
-            updateHomeScreenWidget(this, formattedAmount, countText, currency)
+            updateHomeScreenWidget(this)
 
             // Broadcast to MainActivity to sync in-memory Flutter repositories immediately
             try {
@@ -529,55 +553,31 @@ class VoiceWidgetActivity : Activity() {
         return "Rs."
     }
 
-    private fun updateHomeScreenWidget(
-        context: Context,
-        todayAmount: String,
-        todayCount: String,
-        currency: String
-    ) {
-        val appWidgetManager = AppWidgetManager.getInstance(context)
-        val thisWidget = ComponentName(context, KharchaWidgetProvider::class.java)
-        val appWidgetIds = appWidgetManager.getAppWidgetIds(thisWidget)
+    private fun updateHomeScreenWidget(context: Context) {
+        try {
+            val appWidgetManager = AppWidgetManager.getInstance(context)
+            val prefs = context.getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
 
-        for (appWidgetId in appWidgetIds) {
-            val views = android.widget.RemoteViews(context.packageName, R.layout.kharcha_widget_layout).apply {
-                setTextViewText(R.id.widget_today_amount, todayAmount)
-                setTextViewText(R.id.widget_today_count, todayCount)
-                setTextViewText(R.id.widget_currency_tag, currency)
-
-                // Voice Action -> Instant Native Voice Bottom Sheet Dialog
-                val voiceIntent = HomeWidgetLaunchIntent.getActivity(
-                    context,
-                    VoiceWidgetActivity::class.java,
-                    null
-                )
-                setOnClickPendingIntent(R.id.widget_action_voice, voiceIntent)
-
-                // Scan Action
-                val scanIntent = HomeWidgetLaunchIntent.getActivity(
-                    context,
-                    MainActivity::class.java,
-                    Uri.parse("kharcha://capture/scan")
-                )
-                setOnClickPendingIntent(R.id.widget_action_scan, scanIntent)
-
-                // Manual Action
-                val manualIntent = HomeWidgetLaunchIntent.getActivity(
-                    context,
-                    MainActivity::class.java,
-                    Uri.parse("kharcha://capture/manual")
-                )
-                setOnClickPendingIntent(R.id.widget_action_manual, manualIntent)
-
-                // Whole Card Click -> Open full app
-                val cardIntent = HomeWidgetLaunchIntent.getActivity(
-                    context,
-                    MainActivity::class.java,
-                    Uri.parse("kharcha://home")
-                )
-                setOnClickPendingIntent(R.id.widget_container, cardIntent)
+            // 1. Update 4x1 Widget
+            val widget4x1 = ComponentName(context, KharchaWidgetProvider::class.java)
+            val ids4x1 = appWidgetManager.getAppWidgetIds(widget4x1)
+            if (ids4x1.isNotEmpty()) {
+                KharchaWidgetProvider().onUpdate(context, appWidgetManager, ids4x1, prefs)
             }
-            appWidgetManager.updateAppWidget(appWidgetId, views)
-        }
+
+            // 2. Update 2x2 Widget
+            val widget2x2 = ComponentName(context, KharchaWidget2x2Provider::class.java)
+            val ids2x2 = appWidgetManager.getAppWidgetIds(widget2x2)
+            if (ids2x2.isNotEmpty()) {
+                KharchaWidget2x2Provider().onUpdate(context, appWidgetManager, ids2x2, prefs)
+            }
+
+            // 3. Update 4x2 Widget
+            val widget4x2 = ComponentName(context, KharchaWidget4x2Provider::class.java)
+            val ids4x2 = appWidgetManager.getAppWidgetIds(widget4x2)
+            if (ids4x2.isNotEmpty()) {
+                KharchaWidget4x2Provider().onUpdate(context, appWidgetManager, ids4x2, prefs)
+            }
+        } catch (e: Exception) {}
     }
 }

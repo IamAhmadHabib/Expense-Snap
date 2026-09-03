@@ -249,6 +249,16 @@ class _DashboardScreenState extends State<DashboardScreen>
   double get _remainingBudget => (_budget - _spent).clamp(0, _budget);
   double get _budgetLeftFraction =>
       _budget <= 0 ? 0 : _remainingBudget / _budget;
+  String get _budgetLeftPercentageText {
+    final double pct = _budgetLeftFraction * 100;
+    final String fixed = pct.toStringAsFixed(2);
+    if (fixed.endsWith('.00')) {
+      return '${fixed.substring(0, fixed.length - 3)}% left';
+    } else if (fixed.endsWith('0') && fixed.contains('.')) {
+      return '${fixed.substring(0, fixed.length - 1)}% left';
+    }
+    return '$fixed% left';
+  }
 
   SystemUiOverlayStyle _getStatusBarStyle() {
     switch (_activeTab) {
@@ -606,7 +616,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
-                              '${(_budgetLeftFraction * 100).round()}% left',
+                              _budgetLeftPercentageText,
                               style: AppTypography.caption.copyWith(
                                 color: AppColors.accent,
                                 fontWeight: FontWeight.w700,

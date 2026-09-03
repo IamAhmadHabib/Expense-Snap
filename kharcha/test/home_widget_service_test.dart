@@ -45,4 +45,10 @@ void main() {
     final sub = HomeWidgetService.registerClickCallback((_) {});
     sub?.cancel();
   });
+
+  test('HomeWidgetService declares all 3 widget provider constants', () {
+    expect(HomeWidgetService.androidWidgetProvider, 'KharchaWidgetProvider');
+    expect(HomeWidgetService.androidWidget2x2Provider, 'KharchaWidget2x2Provider');
+    expect(HomeWidgetService.androidWidget4x2Provider, 'KharchaWidget4x2Provider');
+  });
 }

@@ -8,6 +8,8 @@ import '../models/transaction.dart';
 
 class HomeWidgetService {
   static const String androidWidgetProvider = 'KharchaWidgetProvider';
+  static const String androidWidget2x2Provider = 'KharchaWidget2x2Provider';
+  static const String androidWidget4x2Provider = 'KharchaWidget4x2Provider';
 
   const HomeWidgetService._();
 
@@ -49,6 +51,15 @@ class HomeWidgetService {
 
       await HomeWidget.updateWidget(
         name: androidWidgetProvider,
+        qualifiedAndroidName: 'com.kharcha.kharcha.$androidWidgetProvider',
+      );
+      await HomeWidget.updateWidget(
+        name: androidWidget2x2Provider,
+        qualifiedAndroidName: 'com.kharcha.kharcha.$androidWidget2x2Provider',
+      );
+      await HomeWidget.updateWidget(
+        name: androidWidget4x2Provider,
+        qualifiedAndroidName: 'com.kharcha.kharcha.$androidWidget4x2Provider',
       );
     } catch (e) {
       debugPrint('HomeWidgetService.updateWidgetData error: $e');

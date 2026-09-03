@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_4x2_container"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_card_background"
+    android:orientation="vertical"
+    android:paddingStart="16dp"
+    android:paddingTop="14dp"
+    android:paddingEnd="16dp"
+    android:paddingBottom="14dp">
+
+    <!-- Top Section: Today's Spend (Left) & Monthly Budget (Right) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <!-- Left: Today's Spend -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:letterSpacing="0.08"
+                    android:text="TODAY"
+                    android:textColor="#8C7E6E"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_4x2_currency_tag"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:background="@drawable/widget_tag_bg"
+                    android:paddingStart="5dp"
+                    android:paddingTop="1dp"
+                    android:paddingEnd="5dp"
+                    android:paddingBottom="1dp"
+                    android:text="PKR"
+                    android:textColor="#8C7E6E"
+                    android:textSize="9sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/widget_4x2_today_amount"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:includeFontPadding="false"
+                android:text="Rs 0"
+                android:textColor="#1A1612"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/widget_4x2_today_count"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0 expenses today"
+                android:textColor="#8C7E6E"
+                android:textSize="11sp" />
+        </LinearLayout>
+
+        <!-- Right: Monthly Budget Status -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="end"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:letterSpacing="0.08"
+                android:text="REMAINING BUDGET"
+                android:textColor="#8C7E6E"
+                android:textSize="10sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/widget_4x2_remaining_budget"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:includeFontPadding="false"
+                android:text="Rs 0 left"
+                android:textColor="#E5A33C"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/widget_4x2_budget_percent"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0% spent"
+                android:textColor="#8C7E6E"
+                android:textSize="11sp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Middle: Horizontal Budget Progress Bar -->
+    <ProgressBar
+        android:id="@+id/widget_4x2_budget_progress"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="5dp"
+        android:layout_marginTop="10dp"
+        android:layout_marginBottom="10dp"
+        android:max="100"
+        android:progress="0"
+        android:progressDrawable="@drawable/widget_progress_track" />
+
+    <!-- Bottom Section: 7-Day Chart (Left) & Quick Actions (Right) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <!-- 7-Day Mini Chart -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:letterSpacing="0.06"
+                android:text="THIS WEEK"
+                android:textColor="#8C7E6E"
+                android:textSize="9sp"
+                android:textStyle="bold" />
+
+            <ImageView
+                android:id="@+id/widget_4x2_weekly_chart"
+                android:layout_width="145dp"
+                android:layout_height="52dp"
+                android:layout_marginTop="2dp"
+                android:scaleType="fitStart" />
+        </LinearLayout>
+
+        <!-- 3 Quick Action Buttons -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <!-- Manual Add -->
+            <ImageButton
+                android:id="@+id/widget_4x2_action_manual"
+                android:layout_width="38dp"
+                android:layout_height="38dp"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/widget_action_btn_bg"
+                android:contentDescription="Manual Add"
+                android:padding="9dp"
+                android:scaleType="centerInside"
+                android:src="@drawable/ic_widget_plus" />
+
+            <!-- Scan Receipt -->
+            <ImageButton
+                android:id="@+id/widget_4x2_action_scan"
+                android:layout_width="38dp"
+                android:layout_height="38dp"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/widget_action_btn_bg"
+                android:contentDescription="Scan Bill"
+                android:padding="9dp"
+                android:scaleType="centerInside"
+                android:src="@drawable/ic_widget_scan" />
+
+            <!-- Instant Voice Mic Button -->
+            <ImageButton
+                android:id="@+id/widget_4x2_action_voice"
+                android:layout_width="38dp"
+                android:layout_height="38dp"
+                android:background="@drawable/widget_voice_btn_bg"
+                android:contentDescription="Voice Expense"
+                android:padding="9dp"
+                android:scaleType="centerInside"
+                android:src="@drawable/ic_widget_mic" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>
