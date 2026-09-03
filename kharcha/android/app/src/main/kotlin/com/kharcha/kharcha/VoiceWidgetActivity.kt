@@ -1,15 +1,28 @@
 package com.kharcha.kharcha
 
+import android.Manifest
 import android.app.Activity
 import android.appwidget.AppWidgetManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
+import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
-import android.widget.RemoteViews
+import android.speech.SpeechRecognizer
+import android.view.View
+import android.view.animation.AnimationUtils
+import android.widget.EditText
+import android.widget.LinearLayout
+import android.widget.TextView
 import android.widget.Toast
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import es.antonborri.home_widget.HomeWidgetLaunchIntent
 import org.json.JSONArray
 import org.json.JSONObject
@@ -19,62 +32,330 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
+import kotlin.math.max
+import kotlin.math.min
 
 class VoiceWidgetActivity : Activity() {
 
     companion object {
-        private const val SPEECH_REQUEST_CODE = 1001
+        private const val PERMISSION_REQUEST_CODE = 2001
         private const val PREFS_NAME = "FlutterSharedPreferences"
         private const val TRANSACTIONS_KEY = "flutter.kharcha.transactions.v1"
         private const val SETTINGS_KEY = "flutter.kharcha.settings.v1"
     }
 
+    private var speechRecognizer: SpeechRecognizer? = null
+    private var isListening = false
+    private var capturedTranscript: String = ""
+    private var parsedTransaction: VoiceTransactionParser.ParsedVoiceExpense? = null
+
+    // UI elements
+    private lateinit var layoutBottomSheet: LinearLayout
+    private lateinit var layoutListeningView: LinearLayout
+    private lateinit var layoutReviewView: LinearLayout
+    private lateinit var layoutFallbackView: LinearLayout
+    private lateinit var tvStatusSubtitle: TextView
+    private lateinit var tvTranscript: TextView
+    private lateinit var etAmount: EditText
+    private lateinit var etMerchant: EditText
+    private lateinit var tvCategoryBadge: TextView
+    private lateinit var tvCurrencySymbol: TextView
+
+    // Waveform bars
+    private lateinit var waveBar1: View
+    private lateinit var waveBar2: View
+    private lateinit var waveBar3: View
+    private lateinit var waveBar4: View
+    private lateinit var waveBar5: View
+
+    private val handler = Handler(Looper.getMainLooper())
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        setContentView(R.layout.dialog_voice_bottom_sheet)
 
-        // Launch native Android voice speech recognition immediately
+        bindViews()
+        setupListeners()
+        setupCurrency()
+
+        // Slide in bottom sheet with hardware-accelerated animation
+        val slideUp = AnimationUtils.loadAnimation(this, R.anim.slide_up_bottom)
+        layoutBottomSheet.startAnimation(slideUp)
+
+        // Check audio recording permissions
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
+            == PackageManager.PERMISSION_GRANTED
+        ) {
+            startSpeechListening()
+        } else {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(Manifest.permission.RECORD_AUDIO),
+                PERMISSION_REQUEST_CODE
+            )
+        }
+    }
+
+    private fun bindViews() {
+        layoutBottomSheet = findViewById(R.id.layout_bottom_sheet)
+        layoutListeningView = findViewById(R.id.layout_listening_view)
+        layoutReviewView = findViewById(R.id.layout_review_view)
+        layoutFallbackView = findViewById(R.id.layout_fallback_view)
+
+        tvStatusSubtitle = findViewById(R.id.tv_status_subtitle)
+        tvTranscript = findViewById(R.id.tv_transcript)
+        etAmount = findViewById(R.id.et_amount)
+        etMerchant = findViewById(R.id.et_merchant)
+        tvCategoryBadge = findViewById(R.id.tv_category_badge)
+        tvCurrencySymbol = findViewById(R.id.tv_currency_symbol)
+
+        waveBar1 = findViewById(R.id.wave_bar_1)
+        waveBar2 = findViewById(R.id.wave_bar_2)
+        waveBar3 = findViewById(R.id.wave_bar_3)
+        waveBar4 = findViewById(R.id.wave_bar_4)
+        waveBar5 = findViewById(R.id.wave_bar_5)
+    }
+
+    private fun setupListeners() {
+        // Dismiss on tap outside scrim or close button
+        findViewById<View>(R.id.view_outside_scrim).setOnClickListener {
+            dismissWithAnimation()
+        }
+        findViewById<View>(R.id.btn_close).setOnClickListener {
+            dismissWithAnimation()
+        }
+
+        // Finish speaking early button
+        findViewById<View>(R.id.btn_finish_speech).setOnClickListener {
+            stopSpeechRecognizer()
+        }
+
+        // Retry button in Review view
+        findViewById<View>(R.id.btn_retry).setOnClickListener {
+            startSpeechListening()
+        }
+
+        // Retry in fallback view
+        findViewById<View>(R.id.btn_fallback_retry).setOnClickListener {
+            startSpeechListening()
+        }
+
+        // Open full app from fallback view
+        findViewById<View>(R.id.btn_open_app).setOnClickListener {
+            val intent = Intent(this, MainActivity::class.java).apply {
+                data = Uri.parse("kharcha://capture/voice")
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            }
+            startActivity(intent)
+            dismissWithAnimation()
+        }
+
+        // Add Expense Confirm button
+        findViewById<View>(R.id.btn_add_expense).setOnClickListener {
+            saveAndFinish()
+        }
+    }
+
+    private fun setupCurrency() {
+        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val symbol = readCurrencySymbol(prefs)
+        tvCurrencySymbol.text = symbol
+    }
+
+    private fun startSpeechListening() {
+        stopSpeechRecognizer()
+
+        // Switch to listening state
+        layoutListeningView.visibility = View.VISIBLE
+        layoutReviewView.visibility = View.GONE
+        layoutFallbackView.visibility = View.GONE
+        tvStatusSubtitle.text = "Listening... Speak naturally"
+        tvTranscript.text = "Say: 'Lunch 450' or 'Petrol 2 hazar'"
+        capturedTranscript = ""
+
+        if (!SpeechRecognizer.isRecognitionAvailable(this)) {
+            showFallback("Voice recognition not available on this device")
+            return
+        }
+
         try {
+            speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this).apply {
+                setRecognitionListener(object : RecognitionListener {
+                    override fun onReadyForSpeech(params: Bundle?) {
+                        isListening = true
+                        tvStatusSubtitle.text = "Listening..."
+                    }
+
+                    override fun onBeginningOfSpeech() {
+                        tvStatusSubtitle.text = "Listening to you..."
+                    }
+
+                    override fun onRmsChanged(rmsdB: Float) {
+                        updateWaveform(rmsdB)
+                    }
+
+                    override fun onBufferReceived(buffer: ByteArray?) {}
+
+                    override fun onEndOfSpeech() {
+                        isListening = false
+                        tvStatusSubtitle.text = "Processing expense..."
+                        resetWaveform()
+                    }
+
+                    override fun onError(error: Int) {
+                        isListening = false
+                        resetWaveform()
+                        if (capturedTranscript.isNotBlank()) {
+                            onSpeechFinished(capturedTranscript)
+                        } else {
+                            val msg = when (error) {
+                                SpeechRecognizer.ERROR_NO_MATCH,
+                                SpeechRecognizer.ERROR_SPEECH_TIMEOUT ->
+                                    "Didn't catch that. Tap Try Again or Speak clearly."
+                                SpeechRecognizer.ERROR_AUDIO ->
+                                    "Audio recording error. Please retry."
+                                else ->
+                                    "No voice recognized. Tap Try Again."
+                            }
+                            showFallback(msg)
+                        }
+                    }
+
+                    override fun onResults(results: Bundle?) {
+                        isListening = false
+                        resetWaveform()
+                        val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                        val text = matches?.firstOrNull() ?: capturedTranscript
+                        if (text.isNotBlank()) {
+                            onSpeechFinished(text)
+                        } else {
+                            showFallback("Didn't catch that. Tap Try Again.")
+                        }
+                    }
+
+                    override fun onPartialResults(partialResults: Bundle?) {
+                        val matches = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                        val partial = matches?.firstOrNull() ?: ""
+                        if (partial.isNotBlank()) {
+                            capturedTranscript = partial
+                            tvTranscript.text = partial
+                            tvTranscript.setTextColor(0xFF1C1C1E.toInt())
+                        }
+                    }
+
+                    override fun onEvent(eventType: Int, params: Bundle?) {}
+                })
+            }
+
             val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
                 putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-                putExtra(RecognizerIntent.EXTRA_PROMPT, "Speak your expense (e.g. Lunch 450)")
+                putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
                 putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
+
+                // Generous pause tolerance (3.5 - 4.0 seconds of thinking silence before auto-terminating)
+                putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 4000L)
+                putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 3500L)
+                putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 3000L)
             }
-            startActivityForResult(intent, SPEECH_REQUEST_CODE)
+
+            speechRecognizer?.startListening(intent)
         } catch (e: Exception) {
-            Toast.makeText(this, "Voice recognition not available on this device", Toast.LENGTH_SHORT).show()
-            finish()
+            showFallback("Failed to start voice listener: ${e.localizedMessage}")
         }
     }
 
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-
-        if (requestCode == SPEECH_REQUEST_CODE) {
-            if (resultCode == RESULT_OK && data != null) {
-                val results = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
-                val spokenText = results?.firstOrNull() ?: ""
-
-                if (spokenText.isNotBlank()) {
-                    saveVoiceExpense(spokenText)
-                } else {
-                    Toast.makeText(this, "No voice input recognized", Toast.LENGTH_SHORT).show()
-                }
-            } else if (resultCode != RESULT_CANCELED) {
-                Toast.makeText(this, "Voice input stopped", Toast.LENGTH_SHORT).show()
-            }
-            finish()
-            overridePendingTransition(0, 0)
-        } else {
-            finish()
-            overridePendingTransition(0, 0)
-        }
-    }
-
-    private fun saveVoiceExpense(spokenText: String) {
+    private fun stopSpeechRecognizer() {
         try {
-            val parsed = VoiceTransactionParser.parse(spokenText)
-            val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            speechRecognizer?.stopListening()
+            speechRecognizer?.destroy()
+        } catch (_) {}
+        speechRecognizer = null
+        isListening = false
+        resetWaveform()
+    }
 
+    private fun updateWaveform(rmsdB: Float) {
+        // rmsdB typically ranges from -2 to 10
+        val clamped = max(0f, min(12f, rmsdB + 2f))
+        val factor = clamped / 12f
+
+        val density = resources.displayMetrics.density
+        val baseH = (12 * density).toInt()
+        val maxAddH = (36 * density).toInt()
+
+        handler.post {
+            val h1 = baseH + (maxAddH * factor * 0.4f).toInt()
+            val h2 = baseH + (maxAddH * factor * 0.75f).toInt()
+            val h3 = baseH + (maxAddH * factor * 1.0f).toInt()
+            val h4 = baseH + (maxAddH * factor * 0.7f).toInt()
+            val h5 = baseH + (maxAddH * factor * 0.35f).toInt()
+
+            waveBar1.layoutParams = waveBar1.layoutParams.apply { height = h1 }
+            waveBar2.layoutParams = waveBar2.layoutParams.apply { height = h2 }
+            waveBar3.layoutParams = waveBar3.layoutParams.apply { height = h3 }
+            waveBar4.layoutParams = waveBar4.layoutParams.apply { height = h4 }
+            waveBar5.layoutParams = waveBar5.layoutParams.apply { height = h5 }
+        }
+    }
+
+    private fun resetWaveform() {
+        val density = resources.displayMetrics.density
+        val baseH = (12 * density).toInt()
+        handler.post {
+            waveBar1.layoutParams = waveBar1.layoutParams.apply { height = baseH }
+            waveBar2.layoutParams = waveBar2.layoutParams.apply { height = (24 * density).toInt() }
+            waveBar3.layoutParams = waveBar3.layoutParams.apply { height = (38 * density).toInt() }
+            waveBar4.layoutParams = waveBar4.layoutParams.apply { height = (24 * density).toInt() }
+            waveBar5.layoutParams = waveBar5.layoutParams.apply { height = baseH }
+        }
+    }
+
+    private fun onSpeechFinished(text: String) {
+        stopSpeechRecognizer()
+        capturedTranscript = text
+
+        val parsed = VoiceTransactionParser.parse(text)
+        parsedTransaction = parsed
+
+        // Populate review UI
+        val formattedAmount = if (parsed.amount % 1.0 == 0.0) {
+            parsed.amount.toLong().toString()
+        } else {
+            parsed.amount.toString()
+        }
+
+        etAmount.setText(formattedAmount)
+        etMerchant.setText(if (parsed.merchant.isNotBlank()) parsed.merchant else parsed.rawText)
+        tvCategoryBadge.text = parsed.category
+
+        tvStatusSubtitle.text = "Review & Confirm"
+
+        layoutListeningView.visibility = View.GONE
+        layoutReviewView.visibility = View.VISIBLE
+        layoutFallbackView.visibility = View.GONE
+    }
+
+    private fun showFallback(message: String) {
+        tvStatusSubtitle.text = "Voice Input"
+        findViewById<TextView>(R.id.tv_fallback_msg).text = message
+
+        layoutListeningView.visibility = View.GONE
+        layoutReviewView.visibility = View.GONE
+        layoutFallbackView.visibility = View.VISIBLE
+    }
+
+    private fun saveAndFinish() {
+        try {
+            val amountText = etAmount.text.toString().trim()
+            val amount = amountText.toDoubleOrNull() ?: parsedTransaction?.amount ?: 0.0
+            val merchant = etMerchant.text.toString().trim().ifBlank {
+                parsedTransaction?.merchant?.ifBlank { "Voice Expense" } ?: "Voice Expense"
+            }
+            val category = parsedTransaction?.category ?: "Food & Dining"
+            val rawNote = capturedTranscript.ifBlank { merchant }
+            val isIncome = parsedTransaction?.isIncome ?: false
+
+            val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             val now = Date()
             val isoFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS", Locale.US).apply {
                 timeZone = TimeZone.getDefault()
@@ -87,18 +368,17 @@ class VoiceWidgetActivity : Activity() {
             val utcStr = utcFormat.format(now)
             val txId = "tx_${System.currentTimeMillis()}"
 
-            // Build Transaction JSON matching Kharcha model
             val txJson = JSONObject().apply {
                 put("id", txId)
                 put("remoteId", JSONObject.NULL)
-                put("merchant", parsed.merchant)
-                put("category", parsed.category)
-                put("amount", parsed.amount)
+                put("merchant", merchant)
+                put("category", category)
+                put("amount", amount)
                 put("date", dateStr)
-                put("note", parsed.rawText)
+                put("note", rawNote)
                 put("method", "Cash")
                 put("source", "voice")
-                put("isIncome", parsed.isIncome)
+                put("isIncome", isIncome)
                 put("syncState", "pendingCreate")
                 put("syncFailure", JSONObject.NULL)
                 put("attachmentIds", JSONArray())
@@ -107,7 +387,6 @@ class VoiceWidgetActivity : Activity() {
                 put("deletedAt", JSONObject.NULL)
             }
 
-            // Load existing transactions JSON array from Flutter shared prefs
             val existingRaw = prefs.getString(TRANSACTIONS_KEY, null)
             val transactionsArray = if (!existingRaw.isNullOrEmpty()) {
                 try {
@@ -119,14 +398,12 @@ class VoiceWidgetActivity : Activity() {
                 JSONArray()
             }
 
-            // Prepend new transaction
             val newArray = JSONArray()
             newArray.put(txJson)
             for (i in 0 until transactionsArray.length()) {
                 newArray.put(transactionsArray.getJSONObject(i))
             }
 
-            // Save to Flutter shared prefs
             prefs.edit().putString(TRANSACTIONS_KEY, newArray.toString()).apply()
 
             // Calculate Today's Spent Total for widget
@@ -142,9 +419,9 @@ class VoiceWidgetActivity : Activity() {
             val calTx = Calendar.getInstance()
             for (i in 0 until newArray.length()) {
                 val item = newArray.getJSONObject(i)
-                val isIncome = item.optBoolean("isIncome", false)
+                val itemIsIncome = item.optBoolean("isIncome", false)
                 val itemDateStr = item.optString("date", "")
-                if (!isIncome && itemDateStr.isNotEmpty()) {
+                if (!itemIsIncome && itemDateStr.isNotEmpty()) {
                     try {
                         val d = isoFormat.parse(itemDateStr)
                         if (d != null) {
@@ -157,9 +434,7 @@ class VoiceWidgetActivity : Activity() {
                                 todayCount++
                             }
                         }
-                    } catch (e: Exception) {
-                        // ignore malformed date
-                    }
+                    } catch (_: Exception) {}
                 }
             }
 
@@ -167,27 +442,51 @@ class VoiceWidgetActivity : Activity() {
             val formattedAmount = "$currency ${formatter.format(todayTotal.toLong())}"
             val countText = if (todayCount == 1) "1 expense today" else "$todayCount expenses today"
 
-            // Save to Widget storage
             prefs.edit()
                 .putString("today_spent", formattedAmount)
                 .putString("today_count", countText)
                 .putString("currency", currency)
                 .apply()
 
-            // Update the Home Screen Widget directly
             updateHomeScreenWidget(this, formattedAmount, countText, currency)
 
-            // Show Toast right on home screen
-            val amountFormatted = formatter.format(parsed.amount.toLong())
-            Toast.makeText(
-                this,
-                "✓ Added $currency $amountFormatted for ${parsed.merchant}",
-                Toast.LENGTH_LONG
-            ).show()
+            val savedAmountStr = formatter.format(amount.toLong())
+            Toast.makeText(this, "✓ Added $currency $savedAmountStr for $merchant", Toast.LENGTH_SHORT).show()
 
+            dismissWithAnimation()
         } catch (e: Exception) {
-            Toast.makeText(this, "Error saving expense: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Error saving: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
         }
+    }
+
+    private fun dismissWithAnimation() {
+        stopSpeechRecognizer()
+        val slideDown = AnimationUtils.loadAnimation(this, R.anim.slide_down_bottom)
+        layoutBottomSheet.startAnimation(slideDown)
+        handler.postDelayed({
+            finish()
+            overridePendingTransition(0, 0)
+        }, 180)
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == PERMISSION_REQUEST_CODE) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                startSpeechListening()
+            } else {
+                showFallback("Microphone permission required for voice expense logging")
+            }
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        stopSpeechRecognizer()
     }
 
     private fun readCurrencySymbol(prefs: SharedPreferences): String {
@@ -197,9 +496,7 @@ class VoiceWidgetActivity : Activity() {
                 val json = JSONObject(settingsRaw)
                 val symbol = json.optString("currencySymbol", "")
                 if (symbol.isNotBlank()) return symbol
-            } catch (e: Exception) {
-                // fallback
-            }
+            } catch (_: Exception) {}
         }
         return "Rs."
     }
@@ -215,12 +512,12 @@ class VoiceWidgetActivity : Activity() {
         val appWidgetIds = appWidgetManager.getAppWidgetIds(thisWidget)
 
         for (appWidgetId in appWidgetIds) {
-            val views = RemoteViews(context.packageName, R.layout.kharcha_widget_layout).apply {
+            val views = android.widget.RemoteViews(context.packageName, R.layout.kharcha_widget_layout).apply {
                 setTextViewText(R.id.widget_today_amount, todayAmount)
                 setTextViewText(R.id.widget_today_count, todayCount)
                 setTextViewText(R.id.widget_currency_tag, currency)
 
-                // Voice Action -> Native VoiceWidgetActivity (keeps app closed!)
+                // Voice Action -> Native VoiceWidgetActivity (instant bottom sheet!)
                 val voiceIntent = HomeWidgetLaunchIntent.getActivity(
                     context,
                     VoiceWidgetActivity::class.java,
@@ -232,7 +529,7 @@ class VoiceWidgetActivity : Activity() {
                 val scanIntent = HomeWidgetLaunchIntent.getActivity(
                     context,
                     MainActivity::class.java,
-                    android.net.Uri.parse("kharcha://capture/scan")
+                    Uri.parse("kharcha://capture/scan")
                 )
                 setOnClickPendingIntent(R.id.widget_action_scan, scanIntent)
 
@@ -240,15 +537,15 @@ class VoiceWidgetActivity : Activity() {
                 val manualIntent = HomeWidgetLaunchIntent.getActivity(
                     context,
                     MainActivity::class.java,
-                    android.net.Uri.parse("kharcha://capture/manual")
+                    Uri.parse("kharcha://capture/manual")
                 )
                 setOnClickPendingIntent(R.id.widget_action_manual, manualIntent)
 
-                // Card Click -> Open full app
+                // Whole Card Click -> Open full app
                 val cardIntent = HomeWidgetLaunchIntent.getActivity(
                     context,
                     MainActivity::class.java,
-                    android.net.Uri.parse("kharcha://home")
+                    Uri.parse("kharcha://home")
                 )
                 setOnClickPendingIntent(R.id.widget_container, cardIntent)
             }

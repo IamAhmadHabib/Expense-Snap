@@ -63,6 +63,8 @@ class SpeechRecognitionService {
           listenMode: stt.ListenMode.dictation,
           partialResults: true,
           cancelOnError: false,
+          pauseFor: const Duration(seconds: 4),
+          listenFor: const Duration(seconds: 35),
           localeId: localeId,
         ),
       );
