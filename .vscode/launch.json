@@ -2,17 +2,48 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Kharcha (Local)",
-      "request": "launch",
-      "type": "dart",
-      "cwd": "kharcha"
-    },
-    {
-      "name": "Kharcha (Firebase Enabled)",
+      "name": "Kharcha Dev (Debug)",
       "request": "launch",
       "type": "dart",
       "cwd": "kharcha",
+      "flutterMode": "debug",
       "args": [
+        "--flavor",
+        "dev"
+      ]
+    },
+    {
+      "name": "Kharcha Perf (Profile)",
+      "request": "launch",
+      "type": "dart",
+      "cwd": "kharcha",
+      "flutterMode": "profile",
+      "args": [
+        "--flavor",
+        "perf"
+      ]
+    },
+    {
+      "name": "Kharcha Dev (Debug + Firebase)",
+      "request": "launch",
+      "type": "dart",
+      "cwd": "kharcha",
+      "flutterMode": "debug",
+      "args": [
+        "--flavor",
+        "dev",
+        "--dart-define=KHARCHA_FIREBASE_ENABLED=true"
+      ]
+    },
+    {
+      "name": "Kharcha Perf (Profile + Firebase)",
+      "request": "launch",
+      "type": "dart",
+      "cwd": "kharcha",
+      "flutterMode": "profile",
+      "args": [
+        "--flavor",
+        "perf",
         "--dart-define=KHARCHA_FIREBASE_ENABLED=true"
       ]
     }

@@ -48,6 +48,42 @@
           ]
         }
       }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:292863323201:android:022c6684e09d4b8dc0eac0",
+        "android_client_info": {
+          "package_name": "com.kharcha.kharcha.debug"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "292863323201-ldks0d272tnfa90ubdm6plqrlt0p1thq.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCav9ILH-TFGGuTiFMPq4U4ecp4TC68rsI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "292863323201-ldks0d272tnfa90ubdm6plqrlt0p1thq.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "292863323201-ent1f8njsf7v8t0c47icuiie3cn65tok.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.kharcha.kharcha"
+              }
+            }
+          ]
+        }
+      }
     }
   ],
   "configuration_version": "1"

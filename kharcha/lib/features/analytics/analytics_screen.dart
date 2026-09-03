@@ -187,6 +187,122 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
     return 'Rs. ${(actualValue / 1000).toStringAsFixed(1)}k';
   }
 
+  Map<String, String> _getPeakStat() {
+    final expenses = _getPeriodExpenses();
+    if (expenses.isEmpty) {
+      return {'label': 'N/A', 'amount': 'Rs. 0'};
+    }
+
+    if (_selectedPeriod == 'Days') {
+      final now = DateTime.now();
+      double maxAmount = -1;
+      int maxStartHour = 12;
+      for (int i = 0; i < 6; i++) {
+        final startHour = i * 4;
+        final slotTotal = expenses
+            .where((item) =>
+                item.date.year == now.year &&
+                item.date.month == now.month &&
+                item.date.day == now.day &&
+                item.date.hour >= startHour &&
+                item.date.hour < startHour + 4)
+            .fold<double>(0, (sum, item) => sum + item.amount);
+        if (slotTotal > maxAmount) {
+          maxAmount = slotTotal;
+          maxStartHour = startHour + 2;
+        }
+      }
+      final label = '${maxStartHour.toString().padLeft(2, '0')}:00';
+      final formattedAmount = maxAmount < 1000
+          ? 'Rs. ${maxAmount.toInt()}'
+          : 'Rs. ${(maxAmount / 1000).toStringAsFixed(1)}k';
+      return {'label': label, 'amount': formattedAmount};
+    } else if (_selectedPeriod == 'Weeks') {
+      final dayTotals = <int, double>{};
+      for (final item in expenses) {
+        dayTotals[item.date.weekday] = (dayTotals[item.date.weekday] ?? 0) + item.amount;
+      }
+      int peakWeekday = 5;
+      double maxAmount = -1;
+      dayTotals.forEach((weekday, total) {
+        if (total > maxAmount) {
+          maxAmount = total;
+          peakWeekday = weekday;
+        }
+      });
+      const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+      final label = dayNames[(peakWeekday - 1) % 7];
+      final formattedAmount = maxAmount < 1000
+          ? 'Rs. ${maxAmount.toInt()}'
+          : 'Rs. ${(maxAmount / 1000).toStringAsFixed(1)}k';
+      return {'label': label, 'amount': formattedAmount};
+    } else {
+      final monthTotals = <int, double>{};
+      for (final item in expenses) {
+        monthTotals[item.date.month] = (monthTotals[item.date.month] ?? 0) + item.amount;
+      }
+      int peakMonth = DateTime.now().month;
+      double maxAmount = -1;
+      monthTotals.forEach((month, total) {
+        if (total > maxAmount) {
+          maxAmount = total;
+          peakMonth = month;
+        }
+      });
+      const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+      final label = monthNames[(peakMonth - 1) % 12];
+      final formattedAmount = maxAmount < 1000
+          ? 'Rs. ${maxAmount.toInt()}'
+          : 'Rs. ${(maxAmount / 1000).toStringAsFixed(1)}k';
+      return {'label': label, 'amount': formattedAmount};
+    }
+  }
+
+  Map<String, dynamic> _getTrendDelta() {
+    final now = DateTime.now();
+    final allExpenses = _repository.transactions.where((item) => !item.isIncome);
+    double currentTotal = 0;
+    double previousTotal = 0;
+
+    if (_selectedPeriod == 'Days') {
+      currentTotal = allExpenses
+          .where((item) => item.date.year == now.year && item.date.month == now.month && item.date.day == now.day)
+          .fold<double>(0, (sum, item) => sum + item.amount);
+      final yesterday = now.subtract(const Duration(days: 1));
+      previousTotal = allExpenses
+          .where((item) => item.date.year == yesterday.year && item.date.month == yesterday.month && item.date.day == yesterday.day)
+          .fold<double>(0, (sum, item) => sum + item.amount);
+    } else if (_selectedPeriod == 'Weeks') {
+      currentTotal = allExpenses
+          .where((item) => item.date.year == now.year && item.date.month == now.month)
+          .fold<double>(0, (sum, item) => sum + item.amount);
+      final prevMonthDate = DateTime(now.year, now.month - 1);
+      previousTotal = allExpenses
+          .where((item) => item.date.year == prevMonthDate.year && item.date.month == prevMonthDate.month)
+          .fold<double>(0, (sum, item) => sum + item.amount);
+    } else {
+      currentTotal = allExpenses
+          .where((item) => item.date.year == now.year)
+          .fold<double>(0, (sum, item) => sum + item.amount);
+      previousTotal = allExpenses
+          .where((item) => item.date.year == now.year - 1)
+          .fold<double>(0, (sum, item) => sum + item.amount);
+    }
+
+    if (previousTotal == 0) {
+      if (currentTotal == 0) return {'text': '0.0%', 'isUp': true};
+      return {'text': '+100%', 'isUp': true};
+    }
+
+    final diff = currentTotal - previousTotal;
+    final pct = (diff / previousTotal) * 100;
+    final prefix = pct >= 0 ? '+' : '';
+    return {
+      'text': '$prefix${pct.toStringAsFixed(1)}%',
+      'isUp': pct >= 0,
+    };
+  }
+
   String _getYAxisLabel(double value) {
     if (value == 0) return '';
 
@@ -381,32 +497,42 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                     ),
                   ],
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.surface.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        PhosphorIcons.trendUp(PhosphorIconsStyle.bold),
-                        color: AppColors.accent,
-                        size: 14,
+                Builder(
+                  builder: (context) {
+                    final delta = _getTrendDelta();
+                    final isUp = delta['isUp'] as bool;
+                    final text = delta['text'] as String;
+                    final color = isUp ? AppColors.accent : AppColors.chartNeutral;
+                    return Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
                       ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '+4.2%',
-                        style: AppTypography.caption.copyWith(
-                          color: AppColors.accent,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                    ],
-                  ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            isUp
+                                ? PhosphorIcons.trendUp(PhosphorIconsStyle.bold)
+                                : PhosphorIcons.trendDown(PhosphorIconsStyle.bold),
+                            color: color,
+                            size: 14,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            text,
+                            style: AppTypography.caption.copyWith(
+                              color: color,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
                 ),
               ],
             ),
@@ -778,37 +904,33 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                             ),
                           ),
                           const SizedBox(width: 12),
-                          Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Text(
-                                _selectedPeriod == 'Days'
-                                    ? '14:00'
-                                    : (_selectedPeriod == 'Weeks'
-                                          ? 'Friday'
-                                          : 'April'),
-                                style: AppTypography.h2.copyWith(
-                                  color: AppColors.primary,
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 22,
-                                ),
+                              Builder(
+                                builder: (context) {
+                                  final peak = _getPeakStat();
+                                  return Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Text(
+                                        peak['label'] ?? 'N/A',
+                                        style: AppTypography.h2.copyWith(
+                                          color: AppColors.primary,
+                                          fontWeight: FontWeight.w900,
+                                          fontSize: 22,
+                                        ),
+                                      ),
+                                      Text(
+                                        peak['amount'] ?? 'Rs. 0',
+                                        style: AppTypography.bodySmall.copyWith(
+                                          fontWeight: FontWeight.w900,
+                                          color: AppColors.primary.withValues(
+                                            alpha: 0.5,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                },
                               ),
-                              Text(
-                                _selectedPeriod == 'Days'
-                                    ? 'Rs. 950'
-                                    : (_selectedPeriod == 'Weeks'
-                                          ? 'Rs. 8.4k'
-                                          : 'Rs. 45k'),
-                                style: AppTypography.bodySmall.copyWith(
-                                  fontWeight: FontWeight.w900,
-                                  color: AppColors.primary.withValues(
-                                    alpha: 0.5,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
                         ],
                       ),
                     ),

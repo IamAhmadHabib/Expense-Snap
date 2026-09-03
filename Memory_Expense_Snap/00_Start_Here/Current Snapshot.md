@@ -1,13 +1,13 @@
 ---
 type: snapshot
 status: active
-updated: 2026-08-27
+updated: 2026-08-31
 tags: [current-state, snapshot]
 ---
 
 # Current Snapshot
 
-Kharcha currently has a high-fidelity Flutter UI with a local-first, Firebase-synced expense spine. Storage, Gemini, OCR, and other backend integrations are still pending.
+Kharcha currently has a high-fidelity Flutter UI with a local-first, Firebase-synced expense spine, Gemini voice parsing, native Android widget voice logging, and Firebase Storage attachment integration. On-device receipt OCR scanning and push notifications are pending.
 
 ## Implemented UI
 
@@ -48,7 +48,17 @@ Kharcha currently has a high-fidelity Flutter UI with a local-first, Firebase-sy
     - 📷 Scan Action (`@id/widget_action_scan`): Deep-links (`kharcha://capture/scan`) directly into receipt scan.
     - ➕ Manual Action (`@id/widget_action_manual`): Deep-links (`kharcha://capture/manual`) directly into manual expense form.
     - Whole card tap deep-links (`kharcha://home`) to Dashboard.
-  - Real-time updates: `HomeWidgetService.updateWidgetData()` automatically syncs today's spending whenever transactions or settings are created, updated, or deleted.
+  - Real-time updates: `HomeWidgetService.updateWidgetData()` automatically syncs today's spending whenever transactions or settings are created, updated, or deleted, passing dynamic currency symbols to `KharchaWidgetProvider`.
+  - Speech feedback: `VoiceWidgetActivity` presents native Toast alerts on voice silence timeout (`No voice input recognized`) and speech cancellation to prevent silent dismissals on the home screen.
+
+- Dynamic Analytics & Period Trends (`AnalyticsScreen`):
+  - Peak Period Spotlight (`_getPeakStat()`): Computes the peak 4-hour window for Days (Today), peak weekday for Weeks (Monthly), and peak month for Months (Yearly) with exact spending totals directly from live `TransactionRepository` transactions.
+  - Dynamic Period Trend Delta (`_getTrendDelta()`): Calculates real period-over-period percentage differences (comparing Today vs Yesterday, Current Month vs Last Month, Current Year vs Last Year) with dynamic trend up/down icons and badge accent colors.
+  - Smooth Auto-Scaling (`_getMaxY()`): Chart y-axis dynamically auto-scales for low-spending periods (< Rs. 1,000) to ensure smooth curve rendering without data clipping.
+
+- Brand-Aware Voice Engine (Dart + Kotlin Parity):
+  - Added prioritized brand merchant matching across 50+ Pakistani & global brands (`KFC`, `McDonald's`, `Cheezious`, `Ranchers`, `Subway`, `OPTP`, `Shell`, `Total Fuel`, `PSO`, `Attock Petroleum`, `Uber`, `Careem`, `InDrive`, `Bykea`, `Yango`, `Imtiaz`, `Carrefour`, `Al-Fatah`, `Daraz`, `LESCO`, `K-Electric`, `SadaPay`, `NayaPay`, `D-Watson`, `Fazal Din`, `Cinepax`, `Netflix`, `PUBG`, etc.) ensuring spoken brand names take precedence over generic category fallback keywords.
+  - Maintained 100% logic and dictionary parity between Flutter Dart (`GeminiVoiceExpenseParser`) and Android Native Kotlin (`VoiceTransactionParser`).
 
 - Weekly Velocity card features subtle greyish stadium pill tracks (`AppColors.chartTrack`) behind all days, with small dark baseline indicators for zero-spending slots and generous top breathing headroom inside the pill container so peak amounts don't touch the upper ceiling, while maintaining original 32px pill width.
 - Google Sign-In is configured with explicit pre-sign-in session clearing (`signOut()` before `signIn()`), ensuring the native Google Account Picker prompt appears every time the user taps "Continue with Google".

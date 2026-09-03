@@ -56,7 +56,11 @@ class VoiceWidgetActivity : Activity() {
 
                 if (spokenText.isNotBlank()) {
                     saveVoiceExpense(spokenText)
+                } else {
+                    Toast.makeText(this, "No voice input recognized", Toast.LENGTH_SHORT).show()
                 }
+            } else if (resultCode != RESULT_CANCELED) {
+                Toast.makeText(this, "Voice input stopped", Toast.LENGTH_SHORT).show()
             }
             finish()
             overridePendingTransition(0, 0)

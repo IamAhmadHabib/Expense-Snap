@@ -10,6 +10,9 @@ Use this note to link decisions.
 
 ## Current Decisions
 
+- Prioritize explicit Pakistani and international brand merchant extraction (e.g. KFC, McDonald's, Cheezious, Shell, Total, PSO, Uber, Careem, InDrive, Bykea, Daraz, LESCO, SadaPay, etc.) ahead of generic category keywords in both Dart `GeminiVoiceExpenseParser` and Android Kotlin `VoiceTransactionParser` to eliminate generic fallbacks on recognizable brand names.
+- Dynamically synchronize currency symbol formatting (`$currency 0`) between Flutter `AppSettingsRepository` and native Android `KharchaWidgetProvider` `RemoteViews`, ensuring home screen widgets display the user's selected currency symbol accurately without full app launches.
+- Provide native Android Toast feedback upon speech recognition cancellation or silence timeout in `VoiceWidgetActivity` to avoid silent screen dismissals on the home screen wallpaper.
 - Enforce strict word boundaries (`\b`) on numerical multipliers (`k\b`, `hazar\b`, `lakh\b`, `crore\b`) in both Flutter Dart and Android Kotlin voice parsers. This guarantees Urdu prepositions (`ka`, `ki`, `ke`) are never confused with the English `k` (thousands) multiplier, preventing 1000x amount inflation on colloquial spoken inputs.
 
 - Implement in-widget voice logging using native Android `VoiceWidgetActivity` and `RecognizerIntent.ACTION_RECOGNIZE_SPEECH` to avoid opening the full Flutter app window, parsing and saving transactions directly into `FlutterSharedPreferences` and updating the widget `RemoteViews` on the home screen.

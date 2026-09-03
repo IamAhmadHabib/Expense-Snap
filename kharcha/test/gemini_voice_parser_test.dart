@@ -9,7 +9,7 @@ void main() {
     late GeminiVoiceExpenseParser parser;
 
     setUp(() {
-      parser = GeminiVoiceExpenseParser();
+      parser = GeminiVoiceExpenseParser(apiKey: '');
     });
 
     test('parses Roman Urdu food expense with simple digits', () async {
@@ -133,6 +133,18 @@ void main() {
       final result = GeminiVoiceExpenseParser.parseLocally('2k burger');
       expect(result.draft.amount, 2000);
       expect(result.draft.category, 'Food & Dining');
+    });
+
+    test('prioritizes explicit brand merchant names over generic category terms', () async {
+      final shellResult = GeminiVoiceExpenseParser.parseLocally('500 ka petrol Shell se');
+      expect(shellResult.draft.amount, 500);
+      expect(shellResult.draft.category, 'Transportation');
+      expect(shellResult.draft.merchant, 'Shell');
+
+      final cheeziousResult = GeminiVoiceExpenseParser.parseLocally('1500 ki pizza cheezious se khayi');
+      expect(cheeziousResult.draft.amount, 1500);
+      expect(cheeziousResult.draft.category, 'Food & Dining');
+      expect(cheeziousResult.draft.merchant, 'Cheezious');
     });
   });
 

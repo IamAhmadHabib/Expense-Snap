@@ -23,7 +23,7 @@ class GeminiVoiceExpenseParser
 
   String get effectiveApiKey {
     final key = _apiKey;
-    if (key != null && key.trim().isNotEmpty) {
+    if (key != null) {
       return key.trim();
     }
     const envKey = String.fromEnvironment('GEMINI_API_KEY');
@@ -241,7 +241,77 @@ class GeminiVoiceExpenseParser
     if (isIncome) {
       category = 'Income';
       merchant = 'Salary / Deposit';
-    } else if (foodKeywords.any((kw) => lower.contains(kw))) {
+    } else {
+      // 3.1 Check explicit brand merchant matches first
+      final explicitBrandMap = <String, Map<String, String>>{
+        'kfc': {'cat': 'Food & Dining', 'merch': 'KFC'},
+        'mcdonalds': {'cat': 'Food & Dining', 'merch': "McDonald's"},
+        'mcdonald': {'cat': 'Food & Dining', 'merch': "McDonald's"},
+        'cheezious': {'cat': 'Food & Dining', 'merch': 'Cheezious'},
+        'ranchers': {'cat': 'Food & Dining', 'merch': 'Ranchers'},
+        'subway': {'cat': 'Food & Dining', 'merch': 'Subway'},
+        'optp': {'cat': 'Food & Dining', 'merch': 'OPTP'},
+        'dominos': {'cat': 'Food & Dining', 'merch': "Domino's"},
+        'hardees': {'cat': 'Food & Dining', 'merch': "Hardee's"},
+        'starbucks': {'cat': 'Food & Dining', 'merch': 'Starbucks'},
+        'gloria jeans': {'cat': 'Food & Dining', 'merch': "Gloria Jean's"},
+        'tim hortons': {'cat': 'Food & Dining', 'merch': 'Tim Hortons'},
+        'shell': {'cat': 'Transportation', 'merch': 'Shell'},
+        'total': {'cat': 'Transportation', 'merch': 'Total Fuel'},
+        'pso': {'cat': 'Transportation', 'merch': 'PSO'},
+        'attock': {'cat': 'Transportation', 'merch': 'Attock Petroleum'},
+        'uber': {'cat': 'Transportation', 'merch': 'Uber'},
+        'careem': {'cat': 'Transportation', 'merch': 'Careem'},
+        'indrive': {'cat': 'Transportation', 'merch': 'InDrive'},
+        'bykea': {'cat': 'Transportation', 'merch': 'Bykea'},
+        'yango': {'cat': 'Transportation', 'merch': 'Yango'},
+        'imtiaz': {'cat': 'Shopping', 'merch': 'Imtiaz Super Market'},
+        'carrefour': {'cat': 'Shopping', 'merch': 'Carrefour'},
+        'alfatah': {'cat': 'Shopping', 'merch': 'Al-Fatah'},
+        'chase up': {'cat': 'Shopping', 'merch': 'Chase Up'},
+        'daraz': {'cat': 'Shopping', 'merch': 'Daraz'},
+        'amazon': {'cat': 'Shopping', 'merch': 'Amazon'},
+        'lesco': {'cat': 'Bills & Utilities', 'merch': 'LESCO'},
+        'kelectric': {'cat': 'Bills & Utilities', 'merch': 'K-Electric'},
+        'k-electric': {'cat': 'Bills & Utilities', 'merch': 'K-Electric'},
+        'iesco': {'cat': 'Bills & Utilities', 'merch': 'IESCO'},
+        'mepco': {'cat': 'Bills & Utilities', 'merch': 'MEPCO'},
+        'gepco': {'cat': 'Bills & Utilities', 'merch': 'GEPCO'},
+        'pesco': {'cat': 'Bills & Utilities', 'merch': 'PESCO'},
+        'sui gas': {'cat': 'Bills & Utilities', 'merch': 'Sui Gas'},
+        'ssgc': {'cat': 'Bills & Utilities', 'merch': 'SSGC'},
+        'sngpl': {'cat': 'Bills & Utilities', 'merch': 'SNGPL'},
+        'nayatel': {'cat': 'Bills & Utilities', 'merch': 'Nayatel'},
+        'stormfiber': {'cat': 'Bills & Utilities', 'merch': 'StormFiber'},
+        'ptcl': {'cat': 'Bills & Utilities', 'merch': 'PTCL'},
+        'sadapay': {'cat': 'Bills & Utilities', 'merch': 'SadaPay'},
+        'nayapay': {'cat': 'Bills & Utilities', 'merch': 'NayaPay'},
+        'd-watson': {'cat': 'Health', 'merch': 'D-Watson'},
+        'fazal din': {'cat': 'Health', 'merch': 'Fazal Din'},
+        'shifa': {'cat': 'Health', 'merch': 'Shifa Hospital'},
+        'aga khan': {'cat': 'Health', 'merch': 'Aga Khan Hospital'},
+        'cinepax': {'cat': 'Entertainment', 'merch': 'Cinepax'},
+        'nueplex': {'cat': 'Entertainment', 'merch': 'Nueplex'},
+        'cue cinema': {'cat': 'Entertainment', 'merch': 'Cue Cinema'},
+        'netflix': {'cat': 'Entertainment', 'merch': 'Netflix'},
+        'spotify': {'cat': 'Entertainment', 'merch': 'Spotify'},
+        'pubg': {'cat': 'Entertainment', 'merch': 'PUBG'},
+      };
+
+      String? matchedBrandCategory;
+      String? matchedBrandMerchant;
+      for (final entry in explicitBrandMap.entries) {
+        if (lower.contains(entry.key)) {
+          matchedBrandCategory = entry.value['cat'];
+          matchedBrandMerchant = entry.value['merch'];
+          break;
+        }
+      }
+
+      if (matchedBrandCategory != null && matchedBrandMerchant != null) {
+        category = matchedBrandCategory;
+        merchant = matchedBrandMerchant;
+      } else if (foodKeywords.any((kw) => lower.contains(kw))) {
       category = 'Food & Dining';
       if (lower.contains('burger')) {
         merchant = 'Burger';
@@ -257,49 +327,50 @@ class GeminiVoiceExpenseParser
         merchant = "McDonald's";
       } else if (lower.contains('biryani')) {
         merchant = 'Biryani';
-      } else {
-        merchant = 'Food';
-      }
-    } else if (billKeywords.any((kw) => lower.contains(kw))) {
-      category = 'Bills & Utilities';
-      if (lower.contains('bijli') || lower.contains('electric')) {
-        merchant = 'Electricity Bill';
-      } else if (lower.contains('gas')) {
-        merchant = 'Gas Bill';
-      } else if (lower.contains('wifi') || lower.contains('internet')) {
-        merchant = 'Internet Bill';
-      } else {
-        merchant = 'Utility Bill';
-      }
-    } else if (healthKeywords.any((kw) => lower.contains(kw))) {
-      category = 'Health';
-      merchant = 'Medical';
-    } else if (entertainmentKeywords.any((kw) => lower.contains(kw))) {
-      category = 'Entertainment';
-      merchant = lower.contains('netflix') ? 'Netflix' : 'Entertainment';
-    } else if (transportKeywords.any((kw) => lower.contains(kw))) {
-      category = 'Transportation';
-      if (lower.contains('uber')) {
-        merchant = 'Uber';
-      } else if (lower.contains('indrive')) {
-        merchant = 'InDrive';
-      } else if (lower.contains('careem')) {
-        merchant = 'Careem';
-      } else if (lower.contains('bykea')) {
-        merchant = 'Bykea';
-      } else if (lower.contains('petrol') || lower.contains('fuel')) {
-        merchant = 'Petrol';
-      } else {
-        merchant = 'Ride';
-      }
-    } else if (shoppingKeywords.any((kw) => lower.contains(kw))) {
-      category = 'Shopping';
-      if (lower.contains('daraz')) {
-        merchant = 'Daraz';
-      } else if (lower.contains('doodh') || lower.contains('milk')) {
-        merchant = 'Milk / Dairy';
-      } else {
-        merchant = 'Shopping';
+        } else {
+          merchant = 'Food';
+        }
+      } else if (billKeywords.any((kw) => lower.contains(kw))) {
+        category = 'Bills & Utilities';
+        if (lower.contains('bijli') || lower.contains('electric')) {
+          merchant = 'Electricity Bill';
+        } else if (lower.contains('gas')) {
+          merchant = 'Gas Bill';
+        } else if (lower.contains('wifi') || lower.contains('internet')) {
+          merchant = 'Internet Bill';
+        } else {
+          merchant = 'Utility Bill';
+        }
+      } else if (healthKeywords.any((kw) => lower.contains(kw))) {
+        category = 'Health';
+        merchant = 'Medical';
+      } else if (entertainmentKeywords.any((kw) => lower.contains(kw))) {
+        category = 'Entertainment';
+        merchant = lower.contains('netflix') ? 'Netflix' : 'Entertainment';
+      } else if (transportKeywords.any((kw) => lower.contains(kw))) {
+        category = 'Transportation';
+        if (lower.contains('uber')) {
+          merchant = 'Uber';
+        } else if (lower.contains('indrive')) {
+          merchant = 'InDrive';
+        } else if (lower.contains('careem')) {
+          merchant = 'Careem';
+        } else if (lower.contains('bykea')) {
+          merchant = 'Bykea';
+        } else if (lower.contains('petrol') || lower.contains('fuel')) {
+          merchant = 'Petrol';
+        } else {
+          merchant = 'Ride';
+        }
+      } else if (shoppingKeywords.any((kw) => lower.contains(kw))) {
+        category = 'Shopping';
+        if (lower.contains('daraz')) {
+          merchant = 'Daraz';
+        } else if (lower.contains('doodh') || lower.contains('milk')) {
+          merchant = 'Milk / Dairy';
+        } else {
+          merchant = 'Shopping';
+        }
       }
     }
 

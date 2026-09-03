@@ -1325,6 +1325,21 @@ class _VoiceTabViewState extends State<_VoiceTabView>
     '5 hazar bijli ka bill pay kia',
   ];
 
+  double _getVoiceIntensity() {
+    double level = _soundLevel;
+    if (level < 0.0) {
+      if (level < -5.0) {
+        level = ((level + 40.0) / 40.0 * 10.0).clamp(0.0, 10.0);
+      } else {
+        level = 0.0;
+      }
+    }
+    // Noise gate threshold: ambient silence/room noise is typically <= 1.0
+    const double noiseFloor = 1.0;
+    if (level <= noiseFloor) return 0.0;
+    return ((level - noiseFloor) / 7.5).clamp(0.0, 1.0);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -1836,9 +1851,15 @@ class _VoiceTabViewState extends State<_VoiceTabView>
               Text(
                 isProcessing
                     ? 'Understanding...'
-                    : (isListening ? 'Speak now' : 'Tap to speak'),
+                    : (isListening
+                        ? (_getVoiceIntensity() > 0.02
+                            ? 'Listening to your voice...'
+                            : 'Listening... Speak now')
+                        : 'Tap to speak'),
                 style: AppTypography.caption.copyWith(
-                  color: AppColors.primary.withValues(alpha: 0.4),
+                  color: AppColors.primary.withValues(
+                    alpha: isListening && _getVoiceIntensity() > 0.02 ? 0.75 : 0.4,
+                  ),
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.5,
                 ),
@@ -1863,10 +1884,17 @@ class _VoiceTabViewState extends State<_VoiceTabView>
       child: AnimatedBuilder(
         animation: Listenable.merge([_micBreathingController, _waveController]),
         builder: (context, _) {
-          // In listening state, outer rings react to "volume" (simulated by wave oscillation)
-          double volumeScale = isListening
-              ? (1.0 + (_waveController.value * 0.2))
+          final double intensity = _getVoiceIntensity();
+          final bool isSpeaking = intensity > 0.02;
+
+          // In listening state, outer rings react dynamically to real voice speech impact
+          final double speechScale = isListening && isSpeaking
+              ? (1.0 + (intensity * 0.22))
               : 1.0;
+          final double breathingScale = isListening
+              ? (1.0 + (_micBreathingController.value * 0.04))
+              : 1.0;
+          final double volumeScale = speechScale * breathingScale;
 
           return SizedBox(
             width: 200,
@@ -1877,13 +1905,17 @@ class _VoiceTabViewState extends State<_VoiceTabView>
                 // Outer Ring (130px)
                 _buildBreathingRing(
                   size: 130 * volumeScale,
-                  color: ringColor.withValues(alpha: isListening ? 0.15 : 0.07),
+                  color: ringColor.withValues(
+                    alpha: isListening ? (isSpeaking ? 0.22 : 0.12) : 0.07,
+                  ),
                   delayFraction: 0.8,
                 ),
                 // Middle Ring (100px)
                 _buildBreathingRing(
                   size: 100 * volumeScale,
-                  color: ringColor.withValues(alpha: isListening ? 0.25 : 0.15),
+                  color: ringColor.withValues(
+                    alpha: isListening ? (isSpeaking ? 0.35 : 0.20) : 0.15,
+                  ),
                   delayFraction: 0.4,
                 ),
                 // Inner Button (72px)
@@ -1897,9 +1929,13 @@ class _VoiceTabViewState extends State<_VoiceTabView>
                     boxShadow: [
                       if (isListening)
                         BoxShadow(
-                          color: micColor.withValues(alpha: 0.4),
-                          blurRadius: 20,
-                          spreadRadius: 2,
+                          color: micColor.withValues(
+                            alpha: isSpeaking
+                                ? (0.4 + (intensity * 0.35)).clamp(0.4, 0.75)
+                                : 0.3,
+                          ),
+                          blurRadius: isSpeaking ? (20 + (intensity * 12)) : 16,
+                          spreadRadius: isSpeaking ? (2 + (intensity * 3)) : 1,
                         ),
                     ],
                   ),
@@ -2032,7 +2068,7 @@ class _VoiceTabViewState extends State<_VoiceTabView>
   Widget _buildWaveform() {
     final bool isListening = _state == _VoiceState.listening;
     return SizedBox(
-      height: 40,
+      height: 44,
       child: AnimatedSwitcher(
         duration: const Duration(milliseconds: 300),
         child: !isListening
@@ -2040,20 +2076,45 @@ class _VoiceTabViewState extends State<_VoiceTabView>
             : AnimatedBuilder(
                 animation: _waveController,
                 builder: (context, _) {
+                  final double intensity = _getVoiceIntensity();
+                  final bool isSpeaking = intensity > 0.02;
+
                   return Row(
                     mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: List.generate(12, (i) {
-                      double phase =
-                          (_waveController.value * 2 * math.pi) + (i * 0.5);
-                      double soundBoost = (_soundLevel.clamp(0.0, 10.0) * 2.0);
-                      double barHeight = 6 + (math.sin(phase).abs() * (20 + soundBoost));
-                      return Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 2),
-                        width: 3,
-                        height: barHeight,
+                      // Parabolic weighting across 12 bars (higher in center, lower at edges)
+                      final double bellCurve = math.sin(((i + 1) / 13) * math.pi);
+                      // Dynamic acoustic ripple active ONLY when real voice speech is detected
+                      final double ripple = isSpeaking
+                          ? math.sin((_waveController.value * 4 * math.pi) + (i * 0.55)).abs()
+                          : 0.0;
+                      // Dynamic height: exactly 4.0 in silence, springing up to 38.0 when speaking
+                      final double dynamicHeight = isSpeaking
+                          ? (4.0 + (intensity * (10.0 + (ripple * 24.0)) * bellCurve)).clamp(4.0, 38.0)
+                          : 4.0;
+                      // Color and opacity: calm muted amber in silence, vibrant glowing gold when speaking
+                      final double opacity = isSpeaking
+                          ? (0.45 + (intensity * 0.55)).clamp(0.45, 1.0)
+                          : 0.25;
+
+                      return AnimatedContainer(
+                        duration: const Duration(milliseconds: 80),
+                        curve: Curves.easeOutQuad,
+                        margin: const EdgeInsets.symmetric(horizontal: 2.5),
+                        width: 3.5,
+                        height: dynamicHeight,
                         decoration: BoxDecoration(
-                          color: AppColors.amberGold,
+                          color: AppColors.amberGold.withValues(alpha: opacity),
                           borderRadius: BorderRadius.circular(2),
+                          boxShadow: [
+                            if (isSpeaking && intensity > 0.25)
+                              BoxShadow(
+                                color: AppColors.amberGold.withValues(alpha: intensity * 0.35),
+                                blurRadius: 4,
+                                spreadRadius: 0.5,
+                              ),
+                          ],
                         ),
                       );
                     }),

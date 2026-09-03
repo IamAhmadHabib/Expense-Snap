@@ -9,7 +9,6 @@ tags: [bugs]
 Current known issues are mainly product gaps/design debt:
 
 - Analytics detailed breakdown overlay cannot be opened from the chart interaction.
-- Analytics active-stat and insight copy still need fully real derived multi-month logic.
 - Profile account deletion ("Delete Forever"), store rating redirect, and email feedback dispatch are UI sheets without backend hooks.
 - Personalization category selection does not strictly enforce the 3-category minimum before continuing.
 - No current confirmed performance regression remains after the local polish pass; collect a fresh Flutter DevTools profile recording on device to verify remaining 120 Hz jank clusters.

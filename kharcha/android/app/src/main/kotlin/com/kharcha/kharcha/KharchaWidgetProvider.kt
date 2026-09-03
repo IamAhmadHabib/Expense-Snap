@@ -18,9 +18,9 @@ class KharchaWidgetProvider : HomeWidgetProvider() {
     ) {
         for (appWidgetId in appWidgetIds) {
             val views = RemoteViews(context.packageName, R.layout.kharcha_widget_layout).apply {
-                val todayAmount = widgetData.getString("today_spent", "Rs 0") ?: "Rs 0"
+                val currency = widgetData.getString("currency", "Rs.") ?: "Rs."
+                val todayAmount = widgetData.getString("today_spent", "$currency 0") ?: "$currency 0"
                 val todayCount = widgetData.getString("today_count", "0 expenses today") ?: "0 expenses today"
-                val currency = widgetData.getString("currency", "PKR") ?: "PKR"
 
                 setTextViewText(R.id.widget_today_amount, todayAmount)
                 setTextViewText(R.id.widget_today_count, todayCount)

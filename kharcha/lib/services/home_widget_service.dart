@@ -66,6 +66,8 @@ class HomeWidgetService {
         if (uri != null) {
           onUriClicked(uri);
         }
+      }).catchError((e) {
+        debugPrint('HomeWidget.initiallyLaunchedFromHomeWidget error: $e');
       });
 
       return HomeWidget.widgetClicked.listen((uri) {

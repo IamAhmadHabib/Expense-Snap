@@ -46,6 +46,20 @@ class _WidgetVoiceOverlayScreenState extends State<WidgetVoiceOverlayScreen>
   late Animation<Offset> _slideAnimation;
   late Animation<double> _fadeAnimation;
 
+  double _getVoiceIntensity() {
+    double level = _soundLevel;
+    if (level < 0.0) {
+      if (level < -5.0) {
+        level = ((level + 40.0) / 40.0 * 10.0).clamp(0.0, 10.0);
+      } else {
+        level = 0.0;
+      }
+    }
+    const double noiseFloor = 1.0;
+    if (level <= noiseFloor) return 0.0;
+    return ((level - noiseFloor) / 7.5).clamp(0.0, 1.0);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -388,24 +402,53 @@ class _WidgetVoiceOverlayScreenState extends State<WidgetVoiceOverlayScreen>
         // Waveform indicator
         SizedBox(
           height: 48,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(12, (index) {
-              final norm = math.sin((index / 12) * math.pi);
-              final dynamicScale =
-                  (0.3 + (_soundLevel.clamp(0, 10) / 10.0) * 0.7);
-              final height = (norm * 36 * dynamicScale).clamp(6.0, 44.0);
-              return AnimatedContainer(
-                duration: const Duration(milliseconds: 120),
-                width: 4,
-                height: height,
-                margin: const EdgeInsets.symmetric(horizontal: 3),
-                decoration: BoxDecoration(
-                  color: AppColors.accent,
-                  borderRadius: BorderRadius.circular(2),
-                ),
+          child: Builder(
+            builder: (context) {
+              final double intensity = _getVoiceIntensity();
+              final bool isSpeaking = intensity > 0.02;
+
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: List.generate(12, (index) {
+                  final double bellCurve =
+                      math.sin(((index + 1) / 13) * math.pi);
+                  final double ripple = isSpeaking
+                      ? math.sin((_waveController.value * 4 * math.pi) +
+                              (index * 0.55))
+                          .abs()
+                      : 0.0;
+                  final double height = isSpeaking
+                      ? (4.0 + (intensity * (10.0 + (ripple * 24.0)) * bellCurve))
+                          .clamp(4.0, 44.0)
+                      : 4.0;
+                  final double opacity = isSpeaking
+                      ? (0.45 + (intensity * 0.55)).clamp(0.45, 1.0)
+                      : 0.25;
+
+                  return AnimatedContainer(
+                    duration: const Duration(milliseconds: 80),
+                    curve: Curves.easeOutQuad,
+                    width: 3.5,
+                    height: height,
+                    margin: const EdgeInsets.symmetric(horizontal: 2.5),
+                    decoration: BoxDecoration(
+                      color: AppColors.accent.withValues(alpha: opacity),
+                      borderRadius: BorderRadius.circular(2),
+                      boxShadow: [
+                        if (isSpeaking && intensity > 0.25)
+                          BoxShadow(
+                            color: AppColors.accent
+                                .withValues(alpha: intensity * 0.35),
+                            blurRadius: 4,
+                            spreadRadius: 0.5,
+                          ),
+                      ],
+                    ),
+                  );
+                }),
               );
-            }),
+            },
           ),
         ),
         const SizedBox(height: 16),

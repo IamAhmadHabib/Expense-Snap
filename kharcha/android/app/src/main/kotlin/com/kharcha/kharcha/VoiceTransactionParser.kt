@@ -22,8 +22,10 @@ object VoiceTransactionParser {
         }
 
         val isIncome = detectIncome(text)
-        val category = detectCategory(text, isIncome)
-        val merchant = extractMerchant(text, category)
+        val brandPair = if (!isIncome) extractBrand(text) else null
+
+        val category = brandPair?.first ?: detectCategory(text, isIncome)
+        val merchant = brandPair?.second ?: extractMerchant(text, category)
 
         return ParsedVoiceExpense(
             merchant = merchant,
@@ -32,6 +34,67 @@ object VoiceTransactionParser {
             isIncome = isIncome,
             rawText = rawInput
         )
+    }
+
+    private fun extractBrand(text: String): Pair<String, String>? {
+        val brands = listOf(
+            "kfc" to Pair("Food & Dining", "KFC"),
+            "mcdonalds" to Pair("Food & Dining", "McDonald's"),
+            "mcdonald" to Pair("Food & Dining", "McDonald's"),
+            "cheezious" to Pair("Food & Dining", "Cheezious"),
+            "ranchers" to Pair("Food & Dining", "Ranchers"),
+            "subway" to Pair("Food & Dining", "Subway"),
+            "optp" to Pair("Food & Dining", "OPTP"),
+            "dominos" to Pair("Food & Dining", "Domino's"),
+            "hardees" to Pair("Food & Dining", "Hardee's"),
+            "gloria jeans" to Pair("Food & Dining", "Gloria Jean's"),
+            "tim hortons" to Pair("Food & Dining", "Tim Hortons"),
+            "starbucks" to Pair("Food & Dining", "Starbucks"),
+            "d-watson" to Pair("Health", "D-Watson"),
+            "fazal din" to Pair("Health", "Fazal Din"),
+            "shifa" to Pair("Health", "Shifa Hospital"),
+            "aga khan" to Pair("Health", "Aga Khan Hospital"),
+            "cinepax" to Pair("Entertainment", "Cinepax"),
+            "nueplex" to Pair("Entertainment", "Nueplex"),
+            "cue cinema" to Pair("Entertainment", "Cue Cinema"),
+            "netflix" to Pair("Entertainment", "Netflix"),
+            "spotify" to Pair("Entertainment", "Spotify"),
+            "pubg" to Pair("Entertainment", "PUBG"),
+            "uber" to Pair("Transportation", "Uber"),
+            "careem" to Pair("Transportation", "Careem"),
+            "indrive" to Pair("Transportation", "InDrive"),
+            "bykea" to Pair("Transportation", "Bykea"),
+            "yango" to Pair("Transportation", "Yango"),
+            "shell" to Pair("Transportation", "Shell"),
+            "total" to Pair("Transportation", "Total Fuel"),
+            "pso" to Pair("Transportation", "PSO"),
+            "attock" to Pair("Transportation", "Attock Petroleum"),
+            "imtiaz" to Pair("Shopping", "Imtiaz Super Market"),
+            "carrefour" to Pair("Shopping", "Carrefour"),
+            "alfatah" to Pair("Shopping", "Al-Fatah"),
+            "chase up" to Pair("Shopping", "Chase Up"),
+            "daraz" to Pair("Shopping", "Daraz"),
+            "amazon" to Pair("Shopping", "Amazon"),
+            "lesco" to Pair("Bills & Utilities", "LESCO"),
+            "kelectric" to Pair("Bills & Utilities", "K-Electric"),
+            "k-electric" to Pair("Bills & Utilities", "K-Electric"),
+            "iesco" to Pair("Bills & Utilities", "IESCO"),
+            "mepco" to Pair("Bills & Utilities", "MEPCO"),
+            "gepco" to Pair("Bills & Utilities", "GEPCO"),
+            "pesco" to Pair("Bills & Utilities", "PESCO"),
+            "sui gas" to Pair("Bills & Utilities", "Sui Gas"),
+            "ssgc" to Pair("Bills & Utilities", "SSGC"),
+            "sngpl" to Pair("Bills & Utilities", "SNGPL"),
+            "nayatel" to Pair("Bills & Utilities", "Nayatel"),
+            "stormfiber" to Pair("Bills & Utilities", "StormFiber"),
+            "ptcl" to Pair("Bills & Utilities", "PTCL"),
+            "sadapay" to Pair("Bills & Utilities", "SadaPay"),
+            "nayapay" to Pair("Bills & Utilities", "NayaPay")
+        )
+        for ((key, pair) in brands) {
+            if (text.contains(key)) return pair
+        }
+        return null
     }
 
     private fun extractAmount(text: String): Double {
