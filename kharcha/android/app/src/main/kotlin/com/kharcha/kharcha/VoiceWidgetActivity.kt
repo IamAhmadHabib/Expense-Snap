@@ -125,6 +125,25 @@ class VoiceWidgetActivity : Activity() {
             dismissWithAnimation()
         }
 
+        // Prevent clicks anywhere inside the bottom sheet from falling through to the scrim
+        layoutBottomSheet.setOnClickListener {
+            // Consumed: do not dismiss when tapping inside the sheet
+        }
+
+        // Tapping the amount card focuses amount field
+        findViewById<View>(R.id.card_amount).setOnClickListener {
+            etAmount.requestFocus()
+            val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as? android.view.inputmethod.InputMethodManager
+            imm?.showSoftInput(etAmount, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT)
+        }
+
+        // Tapping the merchant card focuses merchant field
+        findViewById<View>(R.id.card_merchant).setOnClickListener {
+            etMerchant.requestFocus()
+            val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as? android.view.inputmethod.InputMethodManager
+            imm?.showSoftInput(etMerchant, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT)
+        }
+
         // Finish speaking early button
         findViewById<View>(R.id.btn_finish_speech).setOnClickListener {
             stopSpeechRecognizer()
