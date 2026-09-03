@@ -560,7 +560,7 @@ class _HistoryScreenState extends State<HistoryScreen>
 
   Widget _buildTransactionRow(Transaction tx, int index, int groupIdx) {
     final isExpanded = _expandedId == tx.id;
-    final categoryIcon = CategoryUtils.icon(tx.category);
+    final categoryStyle = CategoryUtils.style(tx.category);
 
     return RepaintBoundary(
       child: TweenAnimationBuilder<double>(
@@ -622,16 +622,18 @@ class _HistoryScreenState extends State<HistoryScreen>
                   Row(
                     children: [
                       Container(
-                        width: 52,
-                        height: 52,
+                        width: 48,
+                        height: 48,
                         decoration: BoxDecoration(
-                          color: AppColors.softCharcoal,
+                          color: categoryStyle.background,
                           borderRadius: BorderRadius.circular(16),
                         ),
-                        child: Icon(
-                          categoryIcon,
-                          color: AppColors.surface,
-                          size: 24,
+                        child: Center(
+                          child: Icon(
+                            categoryStyle.icon,
+                            color: categoryStyle.foreground,
+                            size: 24,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 14),

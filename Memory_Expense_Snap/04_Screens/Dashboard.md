@@ -17,6 +17,7 @@ Connected behavior:
 - Weekly velocity three-dot action opens [[Analytics]].
 - Top Spending "See all" opens [[History]].
 - Top Spending cards render as up to five static vertical capsules in the main Dashboard page scroll instead of using an internal horizontal or vertical carousel.
+- Top Spending cards use unified `CategoryUtils.style()` featuring 50×50 category pastel squircles, 24px filled icons (`PhosphorIconsStyle.fill`), and matching 7% category background watermarks instead of faint charcoal wireframe boxes.
 - Weekly velocity card height accommodates the 48px analytics action target plus a full-height real spending bar without RenderFlex overflow.
 - Dashboard uses a cached page-based retained tab shell for smoother navigation instead of laying out all major tabs on every tab switch.
 - Tab page widgets are cached between dock taps, adjacent tabs are implicitly warmed, and already-built tab pages use keep-alive wrappers so repeat navigation does not reconstruct the full screen.
@@ -42,3 +43,7 @@ Related:
 - [[Firebase Architecture]]
 - [[Phase 1 UI Shell]]
 - [[Phase 2 Real Expense Flow]]
+- [[Color Tokens]]
+- [[Design System]]
+- [[History]]
+- [[Add Transaction]]

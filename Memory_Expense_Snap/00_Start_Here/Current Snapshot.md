@@ -23,8 +23,16 @@ Kharcha currently has a high-fidelity Flutter UI with a local-first, Firebase-sy
 - [[History]]
 - [[Profile]]
 - [[Notifications Screen]]
+- See also [[Current State]] and [[Welcome]].
 
 ## Connected UI Shell
+
+- Category Icon & Squircle Container Overhaul (Zero Black Boxes & Solid Glyph Weight):
+  - Completely replaced cartoonish/literal category icons (`hamburger`, `popcorn`, `car`, `pill`) with mature, architectural metaphors (`forkKnife`, `carSimple`, `tote`, `ticket`, `firstAidKit`, `receipt`, `bookOpen`, `basket`, `airplaneTilt`, `tag`).
+  - Switched from thin line wireframe outlines to solid filled silhouettes (`PhosphorIconsStyle.fill`) at 24px, giving each category icon physical mass, instant visual recognition, and weight.
+  - Replaced all harsh solid black 52×52 boxes with breathable 48×48 / 50×50 continuous-corner squircles tinted with centralized `AppColors` category pastels and rich matching foreground accents.
+  - Synchronized across the entire app: Home Dashboard "Top Spending" cards (with matching 7% category watermarks), History transaction list, Add Transaction sheet picker (illuminates with category pastel and amber border on selection), and Profile category budget management.
+  - Fully verified with 73/73 tests passing and 0 analyzer issues.
 
 - Multilingual & Urdu Voice Parsing Engine (Zero-Hallucination & Colloquial Accuracy):
   - Fixed Urdu preposition multiplier bug: Enforced strict word boundaries (`\b`) on numerical multipliers (`crore\b`, `lakh\b`, `hazar\b`, `thousand\b`, `sau\b`, `k\b`). This ensures Urdu/Hindi postpositions/prepositions (`ka`, `ki`, `ke`, `kay`) are NEVER erroneously matched as the English "k" (thousands) multiplier (e.g., "300 ka khana" parses accurately as 300, not 300,000).

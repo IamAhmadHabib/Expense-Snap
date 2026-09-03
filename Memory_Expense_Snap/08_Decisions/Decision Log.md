@@ -10,6 +10,7 @@ Use this note to link decisions.
 
 ## Current Decisions
 
+- Overhaul category icons and container housings across the entire app: Eliminate literal cartoon icons (`hamburger`, `popcorn`, `car`, `pill`) and replace with mature, architectural metaphors (`forkKnife`, `carSimple`, `tote`, `ticket`, `firstAidKit`, `receipt`, `bookOpen`, `basket`, `airplaneTilt`, `tag`) using `PhosphorIconsStyle.fill` at 24px. Replace heavy solid black 52×52 boxes with 48×48 / 50×50 continuous-corner squircles tinted with centralized `AppColors` category pastels and matching rich foreground accents.
 - Prioritize explicit Pakistani and international brand merchant extraction (e.g. KFC, McDonald's, Cheezious, Shell, Total, PSO, Uber, Careem, InDrive, Bykea, Daraz, LESCO, SadaPay, etc.) ahead of generic category keywords in both Dart `GeminiVoiceExpenseParser` and Android Kotlin `VoiceTransactionParser` to eliminate generic fallbacks on recognizable brand names.
 - Dynamically synchronize currency symbol formatting (`$currency 0`) between Flutter `AppSettingsRepository` and native Android `KharchaWidgetProvider` `RemoteViews`, ensuring home screen widgets display the user's selected currency symbol accurately without full app launches.
 - Provide native Android Toast feedback upon speech recognition cancellation or silence timeout in `VoiceWidgetActivity` to avoid silent screen dismissals on the home screen wallpaper.
@@ -31,6 +32,6 @@ Use this note to link decisions.
 
 Related:
 
-- [[ADR Template]]
+- [[ADR Note Template]]
 - [[Product Decisions]]
 - [[Technical Decisions]]

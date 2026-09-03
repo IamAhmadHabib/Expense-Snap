@@ -13,6 +13,7 @@ import '../../services/capture_adapters.dart';
 import '../../services/speech_recognition_service.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
+import '../../utils/category_utils.dart';
 
 enum AddTransactionTab { manual, scan, voice }
 
@@ -26,22 +27,16 @@ class _Category {
 }
 
 final List<_Category> _categories = [
-  _Category('Dining', PhosphorIcons.hamburger(PhosphorIconsStyle.regular)),
-  _Category('Transport', PhosphorIcons.car(PhosphorIconsStyle.regular)),
-  _Category('Shopping', PhosphorIcons.shoppingBag(PhosphorIconsStyle.regular)),
-  _Category('Entmnt', PhosphorIcons.popcorn(PhosphorIconsStyle.regular)),
-  _Category('Health', PhosphorIcons.heartbeat(PhosphorIconsStyle.regular)),
-  _Category('Utilities', PhosphorIcons.lightning(PhosphorIconsStyle.regular)),
-  _Category(
-    'Education',
-    PhosphorIcons.graduationCap(PhosphorIconsStyle.regular),
-  ),
-  _Category('Travel', PhosphorIcons.airplane(PhosphorIconsStyle.regular)),
-  _Category(
-    'Groceries',
-    PhosphorIcons.shoppingCart(PhosphorIconsStyle.regular),
-  ),
-  _Category('Other', PhosphorIcons.dotsThree(PhosphorIconsStyle.regular)),
+  _Category('Dining', PhosphorIcons.forkKnife(PhosphorIconsStyle.fill)),
+  _Category('Transport', PhosphorIcons.carSimple(PhosphorIconsStyle.fill)),
+  _Category('Shopping', PhosphorIcons.tote(PhosphorIconsStyle.fill)),
+  _Category('Entmnt', PhosphorIcons.ticket(PhosphorIconsStyle.fill)),
+  _Category('Health', PhosphorIcons.firstAidKit(PhosphorIconsStyle.fill)),
+  _Category('Utilities', PhosphorIcons.receipt(PhosphorIconsStyle.fill)),
+  _Category('Education', PhosphorIcons.bookOpen(PhosphorIconsStyle.fill)),
+  _Category('Travel', PhosphorIcons.airplaneTilt(PhosphorIconsStyle.fill)),
+  _Category('Groceries', PhosphorIcons.basket(PhosphorIconsStyle.fill)),
+  _Category('Other', PhosphorIcons.tag(PhosphorIconsStyle.fill)),
 ];
 
 // ─────────────────────────────────────────────────────────────
@@ -1061,20 +1056,31 @@ class _CategoryPickerSheet extends StatelessWidget {
             itemBuilder: (_, i) {
               final cat = _categories[i];
               final bool isSelected = cat.name == selected.name;
+              final catStyle = CategoryUtils.style(cat.name);
               return GestureDetector(
                 onTap: () => onSelected(cat),
                 child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
+                  duration: const Duration(milliseconds: 250),
                   curve: Curves.easeOutCubic,
                   decoration: BoxDecoration(
-                    color: isSelected ? AppColors.primary : AppColors.surface,
+                    color: isSelected
+                        ? catStyle.background
+                        : AppColors.surface,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
                       color: isSelected
-                          ? AppColors.primary
+                          ? catStyle.foreground
                           : AppColors.profileDivider.withValues(alpha: 0.5),
-                      width: 1.0,
+                      width: isSelected ? 1.8 : 1.0,
                     ),
+                    boxShadow: [
+                      if (isSelected)
+                        BoxShadow(
+                          color: catStyle.foreground.withValues(alpha: 0.18),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                    ],
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -1082,16 +1088,16 @@ class _CategoryPickerSheet extends StatelessWidget {
                       Icon(
                         cat.icon,
                         color: isSelected
-                            ? AppColors.textOnPrimary
-                            : AppColors.primary,
-                        size: 22,
+                            ? catStyle.foreground
+                            : AppColors.primary.withValues(alpha: 0.8),
+                        size: 24,
                       ),
                       const SizedBox(height: 4),
                       Text(
                         cat.name,
                         style: AppTypography.overline.copyWith(
                           color: isSelected
-                              ? AppColors.textOnPrimary
+                              ? catStyle.foreground
                               : AppColors.primary,
                           fontWeight: isSelected
                               ? FontWeight.w800

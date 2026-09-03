@@ -10,6 +10,7 @@ import '../notifications/notifications_screen.dart';
 import '../../repositories/app_settings_repository.dart';
 import '../../repositories/repository_scope.dart';
 import '../../repositories/transaction_repository.dart';
+import '../../utils/category_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:kharcha/theme/app_colors.dart';
@@ -440,10 +441,9 @@ class _DashboardScreenState extends State<DashboardScreen>
                               fontWeight: FontWeight.w800,
                             ),
                           ),
-                          const SizedBox(width: 4),
-                          const Text('👋', style: TextStyle(fontSize: 16)),
+                        
                         ],
-                      ),
+                     ),
                     ],
                   ),
                 ],
@@ -1048,17 +1048,19 @@ class _DashboardScreenState extends State<DashboardScreen>
             _buildCategoryBox(
               'No spending yet',
               '$_currency 0',
-              PhosphorIcons.sparkle(PhosphorIconsStyle.light),
-              PhosphorIcons.sparkle(PhosphorIconsStyle.light),
+              CategoryStyle(
+                background: AppColors.catOtherBg,
+                foreground: AppColors.catOtherFg,
+                icon: PhosphorIcons.sparkle(PhosphorIconsStyle.fill),
+              ),
             ),
           ]
         : topCategories.map((entry) {
-            final icon = _categoryIcon(entry.key);
+            final catStyle = CategoryUtils.style(entry.key);
             return _buildCategoryBox(
               entry.key,
               '$_currency ${NumberFormat('#,###').format(entry.value)}',
-              icon,
-              icon,
+              catStyle,
             );
           }).toList();
 
@@ -1106,26 +1108,10 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
-  IconData _categoryIcon(String category) {
-    switch (category.toLowerCase()) {
-      case 'dining':
-      case 'food':
-      case 'food & dining':
-        return PhosphorIcons.forkKnife(PhosphorIconsStyle.light);
-      case 'transport':
-        return PhosphorIcons.car(PhosphorIconsStyle.light);
-      case 'shopping':
-        return PhosphorIcons.shoppingBag(PhosphorIconsStyle.light);
-      default:
-        return PhosphorIcons.tag(PhosphorIconsStyle.light);
-    }
-  }
-
   Widget _buildCategoryBox(
     String title,
     String amount,
-    IconData icon1,
-    IconData watermark,
+    CategoryStyle catStyle,
   ) {
     return Container(
       width: double.infinity,
@@ -1152,10 +1138,10 @@ class _DashboardScreenState extends State<DashboardScreen>
               right: -5,
               top: 5, // Perfectly centers the 80px icon inside the 90px card
               child: Icon(
-                watermark,
+                catStyle.icon,
                 size: 80,
-                color: AppColors.primary.withValues(alpha: 0.04),
-              ), // Subtle Charcoal watermark
+                color: catStyle.foreground.withValues(alpha: 0.07),
+              ), // Subtle Category watermark
             ),
             Padding(
               padding: const EdgeInsets.symmetric(
@@ -1165,22 +1151,19 @@ class _DashboardScreenState extends State<DashboardScreen>
               child: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(12),
+                    width: 50,
+                    height: 50,
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(
-                        alpha: 0.03,
-                      ), // Soft Charcoal housing
+                      color: catStyle.background,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: AppColors.primary.withValues(alpha: 0.08),
-                        width: 1.0,
-                      ), // Structured bezel
                     ),
-                    child: Icon(
-                      icon1,
-                      color: AppColors.primary,
-                      size: 22,
-                    ), // Bold Charcoal foreground
+                    child: Center(
+                      child: Icon(
+                        catStyle.icon,
+                        color: catStyle.foreground,
+                        size: 24,
+                      ),
+                    ),
                   ),
                   const SizedBox(width: AppSpacing.md),
                   Expanded(

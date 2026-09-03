@@ -74,6 +74,28 @@ class AppColors {
   static const Color cameraSurface = Color(0xFF0C0C0C);
   static const Color dangerSurface = Color(0xFFFFECEC);
 
+  // ─── Category Tokens (Pastels & Rich Accents) ────────
+  static const Color catFoodBg = Color(0xFFFFF1E3);
+  static const Color catFoodFg = Color(0xFFE07A1E);
+  static const Color catTransportBg = Color(0xFFE8F2FF);
+  static const Color catTransportFg = Color(0xFF2563EB);
+  static const Color catShoppingBg = Color(0xFFFDE8F3);
+  static const Color catShoppingFg = Color(0xFFD9257C);
+  static const Color catUtilitiesBg = Color(0xFFE6F8EE);
+  static const Color catUtilitiesFg = Color(0xFF0D9463);
+  static const Color catEntertainmentBg = Color(0xFFEFE8FF);
+  static const Color catEntertainmentFg = Color(0xFF7C3AED);
+  static const Color catHealthBg = Color(0xFFFFE8E8);
+  static const Color catHealthFg = Color(0xFFE11D48);
+  static const Color catEducationBg = Color(0xFFE9F8ED);
+  static const Color catEducationFg = Color(0xFF16A34A);
+  static const Color catGroceriesBg = Color(0xFFFEF9D9);
+  static const Color catGroceriesFg = Color(0xFFB47804);
+  static const Color catTravelBg = Color(0xFFE2F4FF);
+  static const Color catTravelFg = Color(0xFF0284C7);
+  static const Color catOtherBg = Color(0xFFF1F4F8);
+  static const Color catOtherFg = Color(0xFF475569);
+
   // ─── Page Indicator ──────────────────────────────────
   static const Color dotActive = Color(0xFF1C1C1E);
   static const Color dotInactive = Color(0xFFD1D1D6);

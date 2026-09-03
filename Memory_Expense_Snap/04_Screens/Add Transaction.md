@@ -31,6 +31,8 @@ Connected shell behavior:
 - Voice hint cycling uses a lifecycle-safe timer that is cancelled when the sheet is disposed.
 - Capture pages are built through a lazy `PageView.builder`, wrapped in repaint isolation, and inactive capture pages have tickers disabled so Voice/Scan animation work does not continue while Manual is active.
 - Confirm Amount returns to the active tab page after closing the numpad, preserving the user's Manual/Voice/Scan context.
+- Category picker in the Manual form uses 24px filled icons (`PhosphorIconsStyle.fill`) with mature metaphors (`forkKnife`, `carSimple`, `tote`, `ticket`, `firstAidKit`, `receipt`, `bookOpen`, `basket`, `airplaneTilt`, `tag`).
+- Category selection highlights with the matching pastel tint, accent border, and subtle glow rather than turning into a solid black block.
 
 Remaining integrations:
 
@@ -42,3 +44,7 @@ Related:
 - [[Add Transaction Code]]
 - [[Repository Plan]]
 - [[Phase 2 Real Expense Flow]]
+- [[Color Tokens]]
+- [[Design System]]
+- [[Dashboard]]
+- [[History]]

@@ -1390,13 +1390,13 @@ class CategoryBudgetScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final categories = [
-      {'icon': PhosphorIcons.hamburger(), 'label': 'Food & Dining'},
-      {'icon': PhosphorIcons.car(), 'label': 'Transport'},
-      {'icon': PhosphorIcons.shoppingBag(), 'label': 'Shopping'},
-      {'icon': PhosphorIcons.pill(), 'label': 'Health'},
-      {'icon': PhosphorIcons.filmSlate(), 'label': 'Entertainment'},
-      {'icon': PhosphorIcons.house(), 'label': 'Rent & Utilities'},
-      {'icon': PhosphorIcons.gift(), 'label': 'Gifts & Donations'},
+      {'label': 'Food & Dining'},
+      {'label': 'Transport'},
+      {'label': 'Shopping'},
+      {'label': 'Health'},
+      {'label': 'Entertainment'},
+      {'label': 'Rent & Utilities'},
+      {'label': 'Gifts & Donations'},
     ];
 
     return Scaffold(
@@ -1491,17 +1491,25 @@ class CategoryBudgetScreen extends StatelessWidget {
                     ),
                     child: Row(
                       children: [
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withValues(alpha: 0.08),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Icon(
-                            cat['icon'] as IconData,
-                            color: AppColors.primary,
-                            size: 24,
-                          ),
+                        Builder(
+                          builder: (context) {
+                            final catStyle = CategoryUtils.style(cat['label'] as String);
+                            return Container(
+                              width: 48,
+                              height: 48,
+                              decoration: BoxDecoration(
+                                color: catStyle.background,
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: Center(
+                                child: Icon(
+                                  catStyle.icon,
+                                  color: catStyle.foreground,
+                                  size: 24,
+                                ),
+                              ),
+                            );
+                          },
                         ),
                         const SizedBox(width: 16),
                         Expanded(

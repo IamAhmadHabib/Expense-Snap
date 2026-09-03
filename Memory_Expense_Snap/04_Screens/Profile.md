@@ -26,6 +26,7 @@ Implemented live-code capabilities:
 - Confirmed Log Out calls `AuthService.signOut()` and resets navigation back to Onboarding.
 - The delayed stats animation timer is lifecycle-safe (cancelled on dispose), and major cards use repaint isolation.
 - Currency picker opens initialized with the currently persisted currency.
+- Category budget manager uses unified `CategoryUtils.style()` featuring 48×48 category pastel squircles with 24px filled icons (`PhosphorIconsStyle.fill`).
 
 Remaining gaps:
 
@@ -38,3 +39,7 @@ Related:
 - [[Profile Settings]]
 - [[Budgeting]]
 - [[Phase 3 Profile Budget State]]
+- [[Color Tokens]]
+- [[Design System]]
+- [[Dashboard]]
+- [[History]]

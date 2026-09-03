@@ -26,3 +26,10 @@ tags: [implementation]
 
 ## Follow-ups
 ```
+
+Related:
+
+- [[Vault Map]]
+- [[Kharcha Home]]
+- [[Automatic Memory Maintenance]]
+- [[AI Agent Instructions]]
