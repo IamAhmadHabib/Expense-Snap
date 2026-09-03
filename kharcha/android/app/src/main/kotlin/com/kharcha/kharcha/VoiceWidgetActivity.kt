@@ -72,6 +72,7 @@ class VoiceWidgetActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        setFinishOnTouchOutside(false)
         setContentView(R.layout.dialog_voice_bottom_sheet)
 
         bindViews()
@@ -117,7 +118,7 @@ class VoiceWidgetActivity : Activity() {
     }
 
     private fun setupListeners() {
-        // Dismiss on tap outside scrim or close button
+        // Dismiss ONLY on tap outside scrim or close button
         findViewById<View>(R.id.view_outside_scrim).setOnClickListener {
             dismissWithAnimation()
         }
@@ -125,10 +126,11 @@ class VoiceWidgetActivity : Activity() {
             dismissWithAnimation()
         }
 
-        // Prevent clicks anywhere inside the bottom sheet from falling through to the scrim
-        layoutBottomSheet.setOnClickListener {
-            // Consumed: do not dismiss when tapping inside the sheet
-        }
+        // Strictly consume all touches on the bottom sheet so they NEVER dismiss
+        layoutBottomSheet.setOnTouchListener { _, _ -> true }
+        layoutReviewView.setOnTouchListener { _, _ -> true }
+        layoutListeningView.setOnTouchListener { _, _ -> true }
+        layoutFallbackView.setOnTouchListener { _, _ -> true }
 
         // Tapping the amount card focuses amount field
         findViewById<View>(R.id.card_amount).setOnClickListener {

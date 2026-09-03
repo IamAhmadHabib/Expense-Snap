@@ -4,11 +4,13 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <!-- Outside Scrim to dismiss on outside tap -->
+    <!-- Outside Scrim to dismiss on outside tap (strictly above the bottom sheet) -->
     <View
         android:id="@+id/view_outside_scrim"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent"
+        android:layout_alignParentTop="true"
+        android:layout_above="@id/layout_bottom_sheet" />
 
     <!-- Bottom Sheet Container -->
     <LinearLayout
@@ -87,6 +89,8 @@
             android:id="@+id/layout_listening_view"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:clickable="true"
+            android:focusable="true"
             android:gravity="center_horizontal"
             android:orientation="vertical"
             android:paddingTop="8dp"
@@ -175,6 +179,8 @@
             android:id="@+id/layout_review_view"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:clickable="true"
+            android:focusable="true"
             android:orientation="vertical"
             android:visibility="gone">
 
@@ -323,6 +329,8 @@
             android:id="@+id/layout_fallback_view"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:clickable="true"
+            android:focusable="true"
             android:gravity="center_horizontal"
             android:orientation="vertical"
             android:paddingTop="10dp"
