@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="kharcha_background">#161513</color>
+
+    <!-- Kharcha Home Screen Widget Color Tokens (Dark Mode) -->
+    <!-- Warm obsidian charcoal background, OLED battery friendly without harsh glare -->
+    <color name="widget_card_bg">#161513</color>
+    <color name="widget_card_border">#2C2925</color>
+    <color name="widget_text_primary">#F7F4EE</color>
+    <color name="widget_text_secondary">#9E9387</color>
+    <color name="widget_tag_bg">#25221E</color>
+    <color name="widget_tag_text">#C2B7AA</color>
+    <color name="widget_action_btn_bg">#26231F</color>
+    <color name="widget_action_icon">#EDE7DD</color>
+    <color name="widget_progress_track_bg">#26231F</color>
+    <color name="widget_progress_bar">#E5A33C</color>
+    <color name="widget_accent_amber">#E5A33C</color>
+    <color name="widget_voice_btn_bg">#F59E0B</color>
+    <color name="widget_voice_icon">#1A1612</color>
+</resources>

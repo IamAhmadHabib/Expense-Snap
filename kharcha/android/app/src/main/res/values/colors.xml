@@ -1,4 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="kharcha_background">#FAF8F4</color>
+
+    <!-- Kharcha Home Screen Widget Color Tokens (Light Mode) -->
+    <color name="widget_card_bg">#FFFFFF</color>
+    <color name="widget_card_border">#EFECE6</color>
+    <color name="widget_text_primary">#1A1612</color>
+    <color name="widget_text_secondary">#8C7E6E</color>
+    <color name="widget_tag_bg">#F1F4F8</color>
+    <color name="widget_tag_text">#8C7E6E</color>
+    <color name="widget_action_btn_bg">#F5F3EF</color>
+    <color name="widget_action_icon">#1A1612</color>
+    <color name="widget_progress_track_bg">#EAE6DF</color>
+    <color name="widget_progress_bar">#E5A33C</color>
+    <color name="widget_accent_amber">#E5A33C</color>
+    <color name="widget_voice_btn_bg">#F59E0B</color>
+    <color name="widget_voice_icon">#1A1612</color>
 </resources>

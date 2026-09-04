@@ -30,7 +30,7 @@
                 android:layout_height="wrap_content"
                 android:letterSpacing="0.08"
                 android:text="KHARCHA"
-                android:textColor="#8C7E6E"
+                android:textColor="@color/widget_text_secondary"
                 android:textSize="10sp"
                 android:textStyle="bold" />
 
@@ -45,7 +45,7 @@
                 android:paddingEnd="6dp"
                 android:paddingBottom="1dp"
                 android:text="PKR"
-                android:textColor="#8C7E6E"
+                android:textColor="@color/widget_tag_text"
                 android:textSize="9sp"
                 android:textStyle="bold" />
         </LinearLayout>
@@ -58,7 +58,7 @@
             android:layout_marginTop="2dp"
             android:includeFontPadding="false"
             android:text="Rs 0"
-            android:textColor="#1A1612"
+            android:textColor="@color/widget_text_primary"
             android:textSize="22sp"
             android:textStyle="bold" />
 
@@ -69,7 +69,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="1dp"
             android:text="0 expenses today"
-            android:textColor="#8C7E6E"
+            android:textColor="@color/widget_text_secondary"
             android:textSize="11sp" />
 
         <!-- Monthly Budget Track & Label -->
@@ -98,7 +98,7 @@
                 android:singleLine="true"
                 android:ellipsize="end"
                 android:text="Budget: Rs. 0 left"
-                android:textColor="#8C7E6E"
+                android:textColor="@color/widget_text_secondary"
                 android:textSize="10sp"
                 android:textStyle="bold" />
         </LinearLayout>

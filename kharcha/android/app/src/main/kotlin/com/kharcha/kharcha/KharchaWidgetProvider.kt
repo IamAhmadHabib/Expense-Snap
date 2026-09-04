@@ -99,10 +99,11 @@ class KharchaWidgetProvider : HomeWidgetProvider() {
     override fun onReceive(context: Context, intent: Intent) {
         super.onReceive(context, intent)
         val action = intent.action
-        // Automatically refresh when the date rolls over or time changes
+        // Automatically refresh when date, time, timezone, or system theme changes
         if (action == Intent.ACTION_DATE_CHANGED ||
             action == Intent.ACTION_TIME_CHANGED ||
-            action == Intent.ACTION_TIMEZONE_CHANGED
+            action == Intent.ACTION_TIMEZONE_CHANGED ||
+            action == Intent.ACTION_CONFIGURATION_CHANGED
         ) {
             val appWidgetManager = AppWidgetManager.getInstance(context)
             val thisWidget = ComponentName(context, KharchaWidgetProvider::class.java)

@@ -17,7 +17,8 @@ class KharchaWidget2x2Provider : HomeWidgetProvider() {
         val action = intent.action
         if (action == Intent.ACTION_DATE_CHANGED ||
             action == Intent.ACTION_TIME_CHANGED ||
-            action == Intent.ACTION_TIMEZONE_CHANGED
+            action == Intent.ACTION_TIMEZONE_CHANGED ||
+            action == Intent.ACTION_CONFIGURATION_CHANGED
         ) {
             val appWidgetManager = AppWidgetManager.getInstance(context)
             val thisWidget = ComponentName(context, KharchaWidget2x2Provider::class.java)

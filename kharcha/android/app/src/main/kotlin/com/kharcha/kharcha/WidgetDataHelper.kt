@@ -1,6 +1,7 @@
 package com.kharcha.kharcha
 
 import android.content.Context
+import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
@@ -182,16 +183,19 @@ object WidgetDataHelper {
         val padding = strokeWidth / 2f + 2.5f * density
         val rect = RectF(padding, padding, sizePx - padding, sizePx - padding)
 
-        // Background Track
+        val isDarkMode = (context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+
+        // Background Track: Soft warm cream in light mode, deep obsidian track in dark mode
+        val trackColor = if (isDarkMode) Color.parseColor("#2A2723") else Color.parseColor("#EAE6DF")
         val trackPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.STROKE
             this.strokeWidth = strokeWidth
-            color = Color.parseColor("#EAE6DF") // Soft warm cream track
+            color = trackColor
             strokeCap = Paint.Cap.ROUND
         }
         canvas.drawArc(rect, 0f, 360f, false, trackPaint)
 
-        // Progress Arc
+        // Progress Arc: Signature Amber
         if (percent > 0f) {
             val progressPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 style = Paint.Style.STROKE
@@ -232,13 +236,15 @@ object WidgetDataHelper {
         val maxVal = (weeklyTotals.maxOrNull() ?: 0.0).coerceAtLeast(1.0)
         val dayLabels = arrayOf("M", "T", "W", "T", "F", "S", "S")
 
+        val isDarkMode = (context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+
         val trackPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.parseColor("#EDE8E1") // Subtle warm neutral track
+            color = if (isDarkMode) Color.parseColor("#26231F") else Color.parseColor("#EDE8E1")
             style = Paint.Style.FILL
         }
 
         val pastBarPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.parseColor("#1C1C1E") // Obsidian charcoal for past days
+            color = if (isDarkMode) Color.parseColor("#EDE7DD") else Color.parseColor("#1C1C1E")
             style = Paint.Style.FILL
         }
 
@@ -248,7 +254,7 @@ object WidgetDataHelper {
         }
 
         val dotPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.parseColor("#D1CAC1")
+            color = if (isDarkMode) Color.parseColor("#423C36") else Color.parseColor("#D1CAC1")
             style = Paint.Style.FILL
         }
 
@@ -296,12 +302,12 @@ object WidgetDataHelper {
                 textPaint.typeface = Typeface.DEFAULT_BOLD
                 textPaint.textSize = 10f * density
             } else if (i < todayIndex) {
-                textPaint.color = Color.parseColor("#8C7E6E")
+                textPaint.color = if (isDarkMode) Color.parseColor("#A89C8F") else Color.parseColor("#8C7E6E")
                 textPaint.typeface = Typeface.DEFAULT_BOLD
                 textPaint.textSize = 9.5f * density
             } else {
                 // Future day
-                textPaint.color = Color.parseColor("#C4B8A8")
+                textPaint.color = if (isDarkMode) Color.parseColor("#5A5248") else Color.parseColor("#C4B8A8")
                 textPaint.typeface = Typeface.DEFAULT
                 textPaint.textSize = 9f * density
             }
