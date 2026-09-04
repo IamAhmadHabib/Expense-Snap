@@ -44,7 +44,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Quick Expense"
-                    android:textColor="#1A1612"
+                    android:textColor="@color/popup_text_primary"
                     android:textSize="18sp"
                     android:textStyle="bold" />
 
@@ -53,7 +53,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
                     android:text="Log transaction instantly"
-                    android:textColor="#8C7E6E"
+                    android:textColor="@color/popup_text_secondary"
                     android:textSize="12sp" />
             </LinearLayout>
 
@@ -66,7 +66,7 @@
                 android:background="@drawable/category_badge_bg"
                 android:gravity="center"
                 android:text="✕"
-                android:textColor="#8C7E6E"
+                android:textColor="@color/popup_text_secondary"
                 android:textSize="14sp"
                 android:textStyle="bold" />
         </RelativeLayout>
@@ -97,7 +97,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Rs."
-                        android:textColor="#E5A33C"
+                        android:textColor="@color/widget_accent_amber"
                         android:textSize="18sp"
                         android:textStyle="bold" />
 
@@ -111,8 +111,8 @@
                         android:hint="0"
                         android:imeOptions="actionNext"
                         android:inputType="numberDecimal"
-                        android:textColor="#1A1612"
-                        android:textColorHint="#C2B8AD"
+                        android:textColor="@color/popup_text_primary"
+                        android:textColorHint="@color/popup_input_hint"
                         android:textSize="24sp"
                         android:textStyle="bold" />
                 </LinearLayout>
@@ -134,7 +134,7 @@
                         android:background="@drawable/preset_chip_bg"
                         android:gravity="center"
                         android:text="+100"
-                        android:textColor="#4A3E33"
+                        android:textColor="@color/popup_preset_chip_text"
                         android:textSize="11sp"
                         android:textStyle="bold" />
 
@@ -147,7 +147,7 @@
                         android:background="@drawable/preset_chip_bg"
                         android:gravity="center"
                         android:text="+500"
-                        android:textColor="#4A3E33"
+                        android:textColor="@color/popup_preset_chip_text"
                         android:textSize="11sp"
                         android:textStyle="bold" />
 
@@ -160,7 +160,7 @@
                         android:background="@drawable/preset_chip_bg"
                         android:gravity="center"
                         android:text="+1,000"
-                        android:textColor="#4A3E33"
+                        android:textColor="@color/popup_preset_chip_text"
                         android:textSize="11sp"
                         android:textStyle="bold" />
 
@@ -173,7 +173,7 @@
                         android:background="@drawable/preset_chip_bg"
                         android:gravity="center"
                         android:text="+5,000"
-                        android:textColor="#4A3E33"
+                        android:textColor="@color/popup_preset_chip_text"
                         android:textSize="11sp"
                         android:textStyle="bold" />
 
@@ -186,7 +186,7 @@
                         android:paddingStart="10dp"
                         android:paddingEnd="10dp"
                         android:text="Clear"
-                        android:textColor="#8C7E6E"
+                        android:textColor="@color/popup_preset_chip_text"
                         android:textSize="11sp"
                         android:textStyle="bold" />
                 </LinearLayout>
@@ -203,8 +203,8 @@
                     android:inputType="textCapSentences"
                     android:paddingStart="14dp"
                     android:paddingEnd="14dp"
-                    android:textColor="#1A1612"
-                    android:textColorHint="#A89B8C"
+                    android:textColor="@color/popup_text_primary"
+                    android:textColorHint="@color/popup_input_hint"
                     android:textSize="14sp" />
 
                 <!-- Category Selector -->
@@ -214,7 +214,7 @@
                     android:layout_marginTop="12dp"
                     android:letterSpacing="0.06"
                     android:text="CATEGORY"
-                    android:textColor="#8C7E6E"
+                    android:textColor="@color/popup_text_secondary"
                     android:textSize="10sp"
                     android:textStyle="bold" />
 
@@ -241,7 +241,7 @@
                             android:paddingStart="12dp"
                             android:paddingEnd="12dp"
                             android:text="Food &amp; Dining"
-                            android:textColor="#FFFFFF"
+                            android:textColor="@color/popup_chip_selected_text"
                             android:textSize="12sp"
                             android:textStyle="bold" />
 
@@ -255,7 +255,7 @@
                             android:paddingStart="12dp"
                             android:paddingEnd="12dp"
                             android:text="Transportation"
-                            android:textColor="#1C1C1E"
+                            android:textColor="@color/popup_chip_unselected_text"
                             android:textSize="12sp" />
 
                         <TextView
@@ -268,7 +268,7 @@
                             android:paddingStart="12dp"
                             android:paddingEnd="12dp"
                             android:text="Groceries"
-                            android:textColor="#1C1C1E"
+                            android:textColor="@color/popup_chip_unselected_text"
                             android:textSize="12sp" />
 
                         <TextView
@@ -281,7 +281,7 @@
                             android:paddingStart="12dp"
                             android:paddingEnd="12dp"
                             android:text="Shopping"
-                            android:textColor="#1C1C1E"
+                            android:textColor="@color/popup_chip_unselected_text"
                             android:textSize="12sp" />
 
                         <TextView
@@ -294,7 +294,7 @@
                             android:paddingStart="12dp"
                             android:paddingEnd="12dp"
                             android:text="Bills &amp; Utilities"
-                            android:textColor="#1C1C1E"
+                            android:textColor="@color/popup_chip_unselected_text"
                             android:textSize="12sp" />
 
                         <TextView
@@ -307,7 +307,7 @@
                             android:paddingStart="12dp"
                             android:paddingEnd="12dp"
                             android:text="Health"
-                            android:textColor="#1C1C1E"
+                            android:textColor="@color/popup_chip_unselected_text"
                             android:textSize="12sp" />
 
                         <TextView
@@ -320,7 +320,7 @@
                             android:paddingStart="12dp"
                             android:paddingEnd="12dp"
                             android:text="Entertainment"
-                            android:textColor="#1C1C1E"
+                            android:textColor="@color/popup_chip_unselected_text"
                             android:textSize="12sp" />
 
                         <TextView
@@ -332,7 +332,7 @@
                             android:paddingStart="12dp"
                             android:paddingEnd="12dp"
                             android:text="General"
-                            android:textColor="#1C1C1E"
+                            android:textColor="@color/popup_chip_unselected_text"
                             android:textSize="12sp" />
                     </LinearLayout>
                 </HorizontalScrollView>
@@ -356,7 +356,7 @@
                             android:layout_height="wrap_content"
                             android:letterSpacing="0.06"
                             android:text="PAYMENT"
-                            android:textColor="#8C7E6E"
+                            android:textColor="@color/popup_text_secondary"
                             android:textSize="10sp"
                             android:textStyle="bold" />
 
@@ -375,7 +375,7 @@
                                 android:background="@drawable/chip_selected_bg"
                                 android:gravity="center"
                                 android:text="Cash"
-                                android:textColor="#FFFFFF"
+                                android:textColor="@color/popup_chip_selected_text"
                                 android:textSize="11sp"
                                 android:textStyle="bold" />
 
@@ -388,7 +388,7 @@
                                 android:background="@drawable/chip_unselected_bg"
                                 android:gravity="center"
                                 android:text="Card"
-                                android:textColor="#1C1C1E"
+                                android:textColor="@color/popup_chip_unselected_text"
                                 android:textSize="11sp" />
 
                             <TextView
@@ -399,7 +399,7 @@
                                 android:background="@drawable/chip_unselected_bg"
                                 android:gravity="center"
                                 android:text="EasyPaisa"
-                                android:textColor="#1C1C1E"
+                                android:textColor="@color/popup_chip_unselected_text"
                                 android:textSize="10sp" />
                         </LinearLayout>
                     </LinearLayout>
@@ -416,7 +416,7 @@
                             android:layout_height="wrap_content"
                             android:letterSpacing="0.06"
                             android:text="DATE"
-                            android:textColor="#8C7E6E"
+                            android:textColor="@color/popup_text_secondary"
                             android:textSize="10sp"
                             android:textStyle="bold" />
 
@@ -430,7 +430,7 @@
                             android:paddingStart="10dp"
                             android:paddingEnd="10dp"
                             android:text="Today"
-                            android:textColor="#1C1C1E"
+                            android:textColor="@color/popup_chip_unselected_text"
                             android:textSize="11sp"
                             android:textStyle="bold" />
                     </LinearLayout>
@@ -452,7 +452,7 @@
                         android:background="@drawable/btn_secondary_bg"
                         android:gravity="center"
                         android:text="Cancel"
-                        android:textColor="#1C1C1E"
+                        android:textColor="@color/popup_btn_secondary_text"
                         android:textSize="14sp"
                         android:textStyle="bold" />
 
@@ -464,7 +464,7 @@
                         android:background="@drawable/btn_add_expense_bg"
                         android:gravity="center"
                         android:text="Add Expense"
-                        android:textColor="#FFFFFF"
+                        android:textColor="@color/popup_btn_primary_text"
                         android:textSize="15sp"
                         android:textStyle="bold" />
                 </LinearLayout>

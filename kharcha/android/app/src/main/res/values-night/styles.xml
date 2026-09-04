@@ -23,4 +23,12 @@
         <item name="android:backgroundDimEnabled">true</item>
         <item name="android:backgroundDimAmount">0.45</item>
     </style>
+
+    <style name="ModernDatePickerDialogTheme" parent="android:Theme.DeviceDefault.Dialog">
+        <item name="android:colorAccent">#E5A33C</item>
+        <item name="android:colorPrimary">#E5A33C</item>
+        <item name="android:datePickerMode">calendar</item>
+        <item name="android:calendarViewShown">true</item>
+        <item name="android:spinnersShown">false</item>
+    </style>
 </resources>

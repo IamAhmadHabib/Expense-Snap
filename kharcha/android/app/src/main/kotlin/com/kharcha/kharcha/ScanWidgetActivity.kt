@@ -189,10 +189,12 @@ class ScanWidgetActivity : ComponentActivity() {
     }
 
     private fun updateCategoryChips() {
+        val selectedColor = ContextCompat.getColor(this, R.color.popup_chip_selected_text)
+        val unselectedColor = ContextCompat.getColor(this, R.color.popup_chip_unselected_text)
         for ((chip, catName) in categoryChips) {
             val isSelected = (catName == selectedCategory)
             chip.setBackgroundResource(if (isSelected) R.drawable.chip_selected_bg else R.drawable.chip_unselected_bg)
-            chip.setTextColor(if (isSelected) Color.WHITE else Color.parseColor("#1C1C1E"))
+            chip.setTextColor(if (isSelected) selectedColor else unselectedColor)
             chip.setTypeface(null, if (isSelected) Typeface.BOLD else Typeface.NORMAL)
         }
     }

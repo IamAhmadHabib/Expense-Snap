@@ -17,4 +17,31 @@
     <color name="widget_accent_amber">#E5A33C</color>
     <color name="widget_voice_btn_bg">#F59E0B</color>
     <color name="widget_voice_icon">#1A1612</color>
+
+    <!-- Kharcha Widget Popups (Dark Mode) -->
+    <!-- Obsidian charcoal with elevated containers and luxury amber accents -->
+    <color name="popup_sheet_bg">#161513</color>
+    <color name="popup_card_border">#2C2925</color>
+    <color name="popup_drag_handle">#443E38</color>
+    <color name="popup_text_primary">#F7F4EE</color>
+    <color name="popup_text_secondary">#9E9387</color>
+    <color name="popup_text_muted">#A0968B</color>
+    <color name="popup_input_bg">#201D1A</color>
+    <color name="popup_input_border">#332E28</color>
+    <color name="popup_input_hint">#7A7065</color>
+    <color name="popup_preset_chip_bg">#26231F</color>
+    <color name="popup_preset_chip_border">#38332D</color>
+    <color name="popup_preset_chip_text">#EDE7DD</color>
+    <color name="popup_chip_unselected_bg">#23201C</color>
+    <color name="popup_chip_unselected_border">#353029</color>
+    <color name="popup_chip_unselected_text">#DDD7CE</color>
+    <color name="popup_chip_selected_bg">#E5A33C</color>
+    <color name="popup_chip_selected_text">#161513</color>
+    <color name="popup_btn_primary_bg">#E5A33C</color>
+    <color name="popup_btn_primary_text">#161513</color>
+    <color name="popup_btn_secondary_bg">#26231F</color>
+    <color name="popup_btn_secondary_text">#F7F4EE</color>
+    <color name="popup_category_badge_bg">#3D2710</color>
+    <color name="popup_category_badge_text">#FBBF24</color>
+    <color name="popup_thumbnail_bg">#26231F</color>
 </resources>

@@ -3,7 +3,7 @@
     android:color="#33FFFFFF">
     <item>
         <shape android:shape="rectangle">
-            <solid android:color="#141210" />
+            <solid android:color="@color/popup_btn_primary_bg" />
             <corners android:radius="16dp" />
         </shape>
     </item>

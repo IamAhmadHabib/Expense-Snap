@@ -216,6 +216,7 @@ class VoiceWidgetActivity : Activity() {
         layoutFallbackView.visibility = View.GONE
         tvStatusSubtitle.text = "Listening... Speak naturally"
         tvTranscript.text = "Say: 'Lunch 450' or 'Petrol 2 hazar'"
+        tvTranscript.setTextColor(ContextCompat.getColor(this, R.color.popup_text_muted))
         capturedTranscript = ""
 
         if (!SpeechRecognizer.isRecognitionAvailable(this)) {
@@ -284,7 +285,7 @@ class VoiceWidgetActivity : Activity() {
                         if (partial.isNotBlank()) {
                             capturedTranscript = partial
                             tvTranscript.text = partial
-                            tvTranscript.setTextColor(0xFF1C1C1E.toInt())
+                            tvTranscript.setTextColor(ContextCompat.getColor(this@VoiceWidgetActivity, R.color.popup_text_primary))
                         }
                     }
 

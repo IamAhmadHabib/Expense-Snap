@@ -66,7 +66,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
                     android:text="Listening... Speak naturally"
-                    android:textColor="#1C1C1E"
+                    android:textColor="@color/popup_text_primary"
                     android:textSize="16sp"
                     android:textStyle="bold" />
             </LinearLayout>
@@ -79,7 +79,7 @@
                 android:layout_centerVertical="true"
                 android:gravity="center"
                 android:text="✕"
-                android:textColor="#8E8E93"
+                android:textColor="@color/popup_text_muted"
                 android:textSize="16sp"
                 android:textStyle="bold"
                 android:background="?android:attr/selectableItemBackgroundBorderless" />
@@ -157,7 +157,7 @@
                     android:layout_height="wrap_content"
                     android:gravity="center"
                     android:text="Say: 'Lunch 450' or 'Petrol 2 hazar'"
-                    android:textColor="#8E8E93"
+                    android:textColor="@color/popup_text_muted"
                     android:textSize="15sp" />
             </LinearLayout>
 
@@ -170,7 +170,7 @@
                 android:background="@drawable/btn_add_expense_bg"
                 android:gravity="center"
                 android:text="Done Speaking"
-                android:textColor="#FFFFFF"
+                android:textColor="@color/popup_btn_primary_text"
                 android:textSize="15sp"
                 android:textStyle="bold" />
         </LinearLayout>
@@ -204,7 +204,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="AMOUNT"
-                    android:textColor="#8E8E93"
+                    android:textColor="@color/popup_text_secondary"
                     android:textSize="11sp"
                     android:textStyle="bold" />
 
@@ -219,7 +219,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Rs."
-                        android:textColor="#E5A33C"
+                        android:textColor="@color/widget_accent_amber"
                         android:textSize="24sp"
                         android:textStyle="bold"
                         android:layout_marginEnd="6dp" />
@@ -231,7 +231,7 @@
                         android:background="@null"
                         android:inputType="numberDecimal"
                         android:text="0"
-                        android:textColor="#1C1C1E"
+                        android:textColor="@color/popup_text_primary"
                         android:textSize="28sp"
                         android:textStyle="bold" />
                 </LinearLayout>
@@ -260,7 +260,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="MERCHANT / NOTE"
-                        android:textColor="#8E8E93"
+                        android:textColor="@color/popup_text_secondary"
                         android:textSize="11sp"
                         android:textStyle="bold" />
 
@@ -275,7 +275,7 @@
                         android:paddingEnd="10dp"
                         android:paddingBottom="3dp"
                         android:text="Food &amp; Dining"
-                        android:textColor="#E07A1E"
+                        android:textColor="@color/popup_category_badge_text"
                         android:textSize="12sp"
                         android:textStyle="bold" />
                 </RelativeLayout>
@@ -288,7 +288,8 @@
                     android:background="@null"
                     android:hint="e.g. KFC, Petrol"
                     android:inputType="textCapWords"
-                    android:textColor="#1C1C1E"
+                    android:textColor="@color/popup_text_primary"
+                    android:textColorHint="@color/popup_input_hint"
                     android:textSize="16sp" />
             </LinearLayout>
 
@@ -307,7 +308,7 @@
                     android:background="@drawable/btn_secondary_bg"
                     android:gravity="center"
                     android:text="Retry"
-                    android:textColor="#1C1C1E"
+                    android:textColor="@color/popup_btn_secondary_text"
                     android:textSize="15sp"
                     android:textStyle="bold" />
 
@@ -319,7 +320,7 @@
                     android:background="@drawable/btn_add_expense_bg"
                     android:gravity="center"
                     android:text="Add Expense"
-                    android:textColor="#FFFFFF"
+                    android:textColor="@color/popup_btn_primary_text"
                     android:textSize="15sp"
                     android:textStyle="bold" />
             </LinearLayout>
@@ -343,7 +344,7 @@
                 android:layout_height="wrap_content"
                 android:gravity="center"
                 android:text="No speech was detected. Tap to try again or open the app."
-                android:textColor="#8E8E93"
+                android:textColor="@color/popup_text_muted"
                 android:textSize="15sp" />
 
             <LinearLayout
@@ -361,7 +362,7 @@
                     android:background="@drawable/btn_secondary_bg"
                     android:gravity="center"
                     android:text="Try Again 🎙️"
-                    android:textColor="#1C1C1E"
+                    android:textColor="@color/popup_btn_secondary_text"
                     android:textSize="15sp"
                     android:textStyle="bold" />
 
@@ -373,7 +374,7 @@
                     android:background="@drawable/btn_add_expense_bg"
                     android:gravity="center"
                     android:text="Open Kharcha"
-                    android:textColor="#FFFFFF"
+                    android:textColor="@color/popup_btn_primary_text"
                     android:textSize="15sp"
                     android:textStyle="bold" />
             </LinearLayout>
